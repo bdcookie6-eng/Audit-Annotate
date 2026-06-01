@@ -195,6 +195,73 @@ Navigate to `http://localhost:3000/audit` (or whatever port your Express app use
 
 ---
 
+---
+
+## Adding the tool-switcher nav to your Trial Balance app
+
+To show the same pill tabs inside your Trial Balance tool (so users can
+switch back to Audit & Annotate from there too), add this snippet to
+whatever template or layout your Trial Balance app uses.
+
+### If your Trial Balance app is Express + EJS / Pug / Handlebars
+
+Add to your shared layout template:
+
+```html
+<style>
+  .tool-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(71,85,105,0.5);
+    border-radius: 8px;
+    padding: 2px;
+  }
+  .tool-nav a, .tool-nav span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tool-nav a          { color: #94a3b8; }
+  .tool-nav a:hover    { background: rgba(51,65,85,0.6); color: white; }
+  .tool-nav .active    { background: #2563eb; color: white; cursor: default; }
+</style>
+
+<nav class="tool-nav">
+  <span class="active">
+    <!-- Scale icon -->
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M12 3v18M3 9h18M5 20h14M8 3h8"/>
+    </svg>
+    Trial Balance
+  </span>
+  <a href="/audit">
+    <!-- FileSearch icon -->
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+      <circle cx="10" cy="15" r="2"/>
+      <line x1="16" y1="21" x2="13.4" y2="18.4"/>
+    </svg>
+    Audit &amp; Annotate
+  </a>
+</nav>
+```
+
+### If your Trial Balance app is React
+
+Copy `frontend/src/components/ToolNav.tsx` from this repo into your
+Trial Balance app and swap which tool is `active: true`.
+
+---
+
 ## Environment variable summary
 
 ### FastAPI service (Render)
@@ -203,7 +270,7 @@ Navigate to `http://localhost:3000/audit` (or whatever port your Express app use
 | `ANTHROPIC_API_KEY` | Your Anthropic API key |
 | `AUDIT_SECRET` | Shared signing secret (generate with `openssl rand -hex 32`) |
 | `DATABASE_URL` | Render PostgreSQL connection string |
-| `CORS_ORIGINS` | `https://yoursite.com` |
+| `CORS_ORIGINS` | `https://trial-balance-toolv2.onrender.com` (or your Express host domain) |
 
 ### Express app (Render)
 | Variable | Description |

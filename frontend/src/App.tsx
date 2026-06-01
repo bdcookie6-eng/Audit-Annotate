@@ -5,6 +5,7 @@ import { uploadDocument, pollDocumentStatus, getDocument, listDocuments, deleteD
 import UploadZone from './components/UploadZone'
 import CopilotPanel from './components/CopilotPanel'
 import DocumentPanel from './components/DocumentPanel'
+import ToolNav from './components/ToolNav'
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 }
 
@@ -154,12 +155,7 @@ export default function App() {
           Back
         </button>
         <div className="w-px h-4 bg-slate-600" />
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
-            <FileText className="w-3 h-3 text-white" />
-          </div>
-          <span className="text-sm font-semibold text-white">Audit-Annotate</span>
-        </div>
+        <ToolNav />
         {activeDocument && (
           <>
             <div className="w-px h-4 bg-slate-600" />

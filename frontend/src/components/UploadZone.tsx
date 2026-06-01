@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { Upload, FileText, AlertCircle } from 'lucide-react'
+import ToolNav from './ToolNav'
 
 interface Props {
   onUpload: (file: File) => void
@@ -39,14 +40,26 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 px-6">
+    <div className="min-h-screen flex flex-col bg-slate-900">
+      {/* Top bar with tool nav */}
+      <header className="flex items-center justify-between px-6 py-3 border-b border-slate-700/50 bg-slate-800/40">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+            <FileText className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-sm font-semibold text-white">Audit Suite</span>
+        </div>
+        <ToolNav />
+      </header>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
       {/* Header */}
       <div className="mb-10 text-center">
         <div className="flex items-center justify-center gap-3 mb-3">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
             <FileText className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Audit-Annotate</h1>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Audit & Annotate</h1>
         </div>
         <p className="text-slate-400 text-sm max-w-sm">
           AI-powered financial statement audit workbench for CPA teams
@@ -114,6 +127,7 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         Balance sheets, income statements, and cash flow statements supported.
         Files are processed securely and not shared externally.
       </p>
+      </div>{/* end flex-1 center */}
     </div>
   )
 }
