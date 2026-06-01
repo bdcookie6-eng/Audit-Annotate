@@ -42,6 +42,7 @@ class FindingModel(Base):
     actual_value = Column(Float)
     status = Column(String, default="open")  # open | approved | dismissed | noted
     note = Column(Text)
+    coordinates = Column(JSON)  # {page, x, y, w, h} normalized 0-1 or null
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 

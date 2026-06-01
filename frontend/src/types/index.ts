@@ -26,6 +26,14 @@ export interface ExtractedData {
 export type FindingStatus = 'open' | 'approved' | 'dismissed' | 'noted'
 export type FindingSeverity = 'error' | 'warning' | 'info'
 
+export interface FindingCoordinates {
+  page: number
+  x: number   // 0-1 fraction of page width
+  y: number   // 0-1 fraction of page height
+  w: number
+  h: number
+}
+
 export interface Finding {
   id: string
   document_id: string
@@ -38,6 +46,8 @@ export interface Finding {
   actual_value: number | null
   status: FindingStatus
   note: string | null
+  coordinates: FindingCoordinates | null
+  number?: number   // assigned at render time, not stored
   created_at: string | null
 }
 

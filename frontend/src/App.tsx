@@ -1,10 +1,19 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { FileText, Upload, Trash2, ChevronLeft, Clock } from 'lucide-react'
 import type { Document, Finding } from './types'
 import { uploadDocument, pollDocumentStatus, getDocument, listDocuments, deleteDocument, updateFinding } from './api/client'
 import UploadZone from './components/UploadZone'
 import CopilotPanel from './components/CopilotPanel'
 import DocumentPanel from './components/DocumentPanel'
+
+const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 }
+
+function assignNumbers(findings: Finding[]): Finding[] {
+  const sorted = [...findings].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 2) - (SEVERITY_ORDER[b.severity] ?? 2)
+  )
+  return sorted.map((f, i) => ({ ...f, number: i + 1 }))
+}
 
 type AppState = 'home' | 'workbench'
 
@@ -15,6 +24,11 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
+
+  const numberedFindings = useMemo(
+    () => activeDocument ? assignNumbers(activeDocument.findings) : [],
+    [activeDocument]
+  )
 
   // Load recent documents on mount
   useEffect(() => {
@@ -187,6 +201,7 @@ export default function App() {
           <div className="w-[38%] min-w-[300px] flex flex-col overflow-hidden border-r border-slate-700/50">
             <CopilotPanel
               document={activeDocument}
+              numberedFindings={numberedFindings}
               selectedFinding={selectedFinding}
               onSelectFinding={setSelectedFinding}
               onFindingUpdate={handleFindingUpdate}
@@ -197,6 +212,7 @@ export default function App() {
           <div className="flex-1 overflow-hidden">
             <DocumentPanel
               document={activeDocument}
+              numberedFindings={numberedFindings}
               selectedFinding={selectedFinding}
               onSelectFinding={setSelectedFinding}
             />

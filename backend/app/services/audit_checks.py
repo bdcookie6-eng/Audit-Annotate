@@ -2,7 +2,8 @@ import uuid
 import datetime
 from typing import Optional
 
-FOOTING_TOLERANCE_PCT = 0.005       # 0.5% rounding tolerance
+FOOTING_TOLERANCE_PCT = 0.005       # 0.5% rounding tolerance for column footing
+BALANCE_EQUATION_TOLERANCE = 500.0  # $500 flat — balance sheet equation should be exact
 SIGNIFICANT_VARIANCE_PCT = 0.25     # 25%+ change → warning
 NOTABLE_VARIANCE_PCT = 0.10         # 10%+ change → info
 
@@ -108,8 +109,7 @@ def check_balance_sheet_equation(extracted_data: dict) -> list:
 
     if assets_cy is not None and liabilities_equity_cy is not None:
         diff = abs(assets_cy - liabilities_equity_cy)
-        tolerance = max(abs(assets_cy) * FOOTING_TOLERANCE_PCT, 1.0)
-        if diff > tolerance:
+        if diff > BALANCE_EQUATION_TOLERANCE:
             findings.append(_finding(
                 check_type="balance_sheet_equation",
                 severity="error",
@@ -119,7 +119,7 @@ def check_balance_sheet_equation(extracted_data: dict) -> list:
                     f"({_fmt(liabilities_equity_cy)}). "
                     f"Discrepancy: {_fmt(diff)}. Investigate the source of the imbalance."
                 ),
-                field_name="Balance Sheet Equation",
+                field_name="Total Assets",
                 expected=assets_cy,
                 actual=liabilities_equity_cy,
             ))

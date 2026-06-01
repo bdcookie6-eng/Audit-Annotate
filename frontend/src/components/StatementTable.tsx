@@ -27,7 +27,12 @@ function pctChange(cy: number | null, py: number | null): string | null {
 export default function StatementTable({ data, findings, selectedFinding, onSelectFinding }: Props) {
   const { sections = [], total, unit = 'ones', period } = data
 
-  // Build a set of flagged field names for quick lookup
+  // Build lookup maps from field_name → finding
+  const findingByField = new Map<string, Finding>()
+  for (const f of findings) {
+    if (f.field_name && f.status === 'open') findingByField.set(f.field_name, f)
+  }
+
   const errorFields = new Set(
     findings.filter(f => f.severity === 'error' && f.status === 'open').map(f => f.field_name)
   )
@@ -35,9 +40,7 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
     findings.filter(f => f.severity === 'warning' && f.status === 'open').map(f => f.field_name)
   )
 
-  const findingForField = (label: string): Finding | null => {
-    return findings.find(f => f.field_name === label && f.status === 'open') ?? null
-  }
+  const findingForField = (label: string): Finding | null => findingByField.get(label) ?? null
 
   const rowClass = (label: string, isSubtotal: boolean, isTotal: boolean): string => {
     const base = isTotal
@@ -90,12 +93,14 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
             </td>
           </>
         )}
-        <td className="py-2 pl-3 text-center w-6">
-          {finding && (
-            <span className={`inline-block w-2 h-2 rounded-full ${
-              finding.severity === 'error' ? 'bg-red-500' :
-              finding.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
-            }`} />
+        <td className="py-2 pl-2 pr-3 text-center w-8">
+          {finding && finding.number != null && (
+            <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold ${
+              finding.severity === 'error'   ? 'bg-red-600 text-white' :
+              finding.severity === 'warning' ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white'
+            }`}>
+              {finding.number}
+            </span>
           )}
         </td>
       </tr>

@@ -6,12 +6,11 @@ import FindingCard from './FindingCard'
 
 interface Props {
   document: Document
+  numberedFindings: Finding[]
   selectedFinding: Finding | null
   onSelectFinding: (f: Finding | null) => void
   onFindingUpdate: (findingId: string, patch: { status: string; note?: string }) => void
 }
-
-const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 }
 
 function FindingsBadge({ findings }: { findings: Finding[] }) {
   const errors = findings.filter(f => f.severity === 'error' && f.status === 'open').length
@@ -43,7 +42,7 @@ function FindingsBadge({ findings }: { findings: Finding[] }) {
   )
 }
 
-export default function CopilotPanel({ document: doc, selectedFinding, onSelectFinding, onFindingUpdate }: Props) {
+export default function CopilotPanel({ document: doc, numberedFindings, selectedFinding, onSelectFinding, onFindingUpdate }: Props) {
   const [summary, setSummary] = useState<string>('')
   const [summaryLoading, setSummaryLoading] = useState(true)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -124,16 +123,14 @@ export default function CopilotPanel({ document: doc, selectedFinding, onSelectF
     }
   }
 
-  const filteredFindings = doc.findings
-    .filter(f => {
-      if (filter === 'open') return f.status === 'open'
-      if (filter === 'reviewed') return f.status !== 'open'
-      return true
-    })
-    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 2) - (SEVERITY_ORDER[b.severity] ?? 2))
+  const filteredFindings = numberedFindings.filter(f => {
+    if (filter === 'open') return f.status === 'open'
+    if (filter === 'reviewed') return f.status !== 'open'
+    return true
+  })
 
-  const openCount = doc.findings.filter(f => f.status === 'open').length
-  const reviewedCount = doc.findings.filter(f => f.status !== 'open').length
+  const openCount = numberedFindings.filter(f => f.status === 'open').length
+  const reviewedCount = numberedFindings.filter(f => f.status !== 'open').length
 
   return (
     <div className="flex flex-col h-full bg-slate-900">

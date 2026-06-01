@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..db.database import DocumentModel, FindingModel, get_db
 from ..services.audit_checks import run_all_checks
 from ..services.claude_service import extract_financial_data
-from ..services.document_processor import extract_document_text
+from ..services.document_processor import extract_document_text, find_text_in_pdf
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -55,6 +55,7 @@ def _doc_to_dict(doc: DocumentModel, db: Session) -> dict:
                 "actual_value": f.actual_value,
                 "status": f.status,
                 "note": f.note,
+                "coordinates": f.coordinates,
                 "created_at": f.created_at.isoformat() if f.created_at else None,
             }
             for f in findings
@@ -78,6 +79,12 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
 
         findings = run_all_checks(extracted)
 
+        # For PDFs, resolve each finding's field_name to page coordinates
+        is_pdf = file_type == "pdf"
+        for f in findings:
+            if is_pdf and f.get("field_name"):
+                f["coordinates"] = find_text_in_pdf(file_path, f["field_name"])
+
         doc.extracted_data = extracted
         doc.statement_type = extracted.get("statement_type", "unknown")
         doc.status = "ready"
@@ -95,6 +102,7 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
                     expected_value=f.get("expected_value"),
                     actual_value=f.get("actual_value"),
                     status=f.get("status", "open"),
+                    coordinates=f.get("coordinates"),
                 )
             )
         db.commit()
