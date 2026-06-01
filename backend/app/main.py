@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .db.database import create_tables
 from .routers import documents, chat
+from .auth import AuditAuthMiddleware
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,6 +24,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditAuthMiddleware)
 
 create_tables()
 
