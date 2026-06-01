@@ -1,0 +1,61 @@
+export interface LineItem {
+  label: string
+  current_year: number | null
+  prior_year: number | null
+  is_subtotal: boolean
+  is_total: boolean
+  indent_level: number
+}
+
+export interface StatementSection {
+  name: string
+  line_items: LineItem[]
+  subtotal: LineItem | null
+}
+
+export interface ExtractedData {
+  statement_type: string
+  period: string | null
+  currency: string
+  unit: string
+  sections: StatementSection[]
+  total: LineItem | null
+  _raw_text?: string
+}
+
+export type FindingStatus = 'open' | 'approved' | 'dismissed' | 'noted'
+export type FindingSeverity = 'error' | 'warning' | 'info'
+
+export interface Finding {
+  id: string
+  document_id: string
+  check_type: string
+  severity: FindingSeverity
+  title: string
+  description: string
+  field_name: string | null
+  expected_value: number | null
+  actual_value: number | null
+  status: FindingStatus
+  note: string | null
+  created_at: string | null
+}
+
+export type DocumentStatus = 'processing' | 'ready' | 'error'
+
+export interface Document {
+  id: string
+  filename: string
+  file_type: string
+  statement_type: string | null
+  extracted_data: ExtractedData | null
+  status: DocumentStatus
+  error_message: string | null
+  findings: Finding[]
+  created_at: string | null
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
