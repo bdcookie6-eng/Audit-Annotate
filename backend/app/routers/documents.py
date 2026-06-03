@@ -57,12 +57,14 @@ class ChatRequest(BaseModel):
         return v
 
 
-def _doc_to_dict(doc: DocumentModel, db: Session) -> dict:
-    findings = (
+def _doc_to_dict(doc: DocumentModel, db: Session = None) -> dict:
+    # Use the pre-loaded relationship when available (avoids N+1 on list)
+    findings = doc.findings if hasattr(doc, "findings") and doc.findings is not None else (
         db.query(FindingModel)
         .filter(FindingModel.document_id == doc.id)
         .order_by(FindingModel.created_at)
         .all()
+        if db else []
     )
     return {
         "id": doc.id,
@@ -218,8 +220,9 @@ async def upload_document(
 
 @router.get("/")
 def list_documents(db: Session = Depends(get_db)):
+    # selectin relationship loads all findings in one extra query, not N queries
     docs = db.query(DocumentModel).order_by(DocumentModel.created_at.desc()).limit(50).all()
-    return [_doc_to_dict(d, db) for d in docs]
+    return [_doc_to_dict(d) for d in docs]
 
 
 @router.get("/{doc_id}/status")

@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +15,22 @@ from .auth import AuditAuthMiddleware
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Audit-Annotate API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import anyio
+    # Widen the sync threadpool so concurrent sync DB routes don't queue behind each other
+    limiter = anyio.get_current_task()  # verify we're inside an event loop
+    try:
+        from anyio.lowlevel import current_default_thread_limiter
+        lim = current_default_thread_limiter()
+        lim.total_tokens = max(lim.total_tokens, 64)
+    except Exception:
+        pass  # not critical — default pool still works
+    yield
+
+
+app = FastAPI(title="Audit-Annotate API", version="1.0.0", lifespan=lifespan)
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 app.add_middleware(

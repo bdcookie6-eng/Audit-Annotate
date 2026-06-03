@@ -1,9 +1,9 @@
 import os
 import datetime
 from sqlalchemy import (
-    create_engine, Column, String, Float, DateTime, Text, JSON, Integer
+    create_engine, Column, String, Float, DateTime, Text, JSON, Integer, ForeignKey
 )
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./audit_annotate.db")
 
@@ -29,12 +29,19 @@ class DocumentModel(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+    findings = relationship(
+        "FindingModel",
+        back_populates="document",
+        order_by="FindingModel.created_at",
+        lazy="selectin",  # single extra SELECT IN query instead of N queries
+    )
+
 
 class FindingModel(Base):
     __tablename__ = "findings"
 
     id = Column(String, primary_key=True)
-    document_id = Column(String, nullable=False, index=True)
+    document_id = Column(String, ForeignKey("documents.id"), nullable=False, index=True)
     check_type = Column(String, nullable=False)
     severity = Column(String, nullable=False)  # error | warning | info
     title = Column(String, nullable=False)
@@ -46,6 +53,8 @@ class FindingModel(Base):
     note = Column(Text)
     coordinates = Column(JSON)  # {page, x, y, w, h} normalized 0-1 or null
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    document = relationship("DocumentModel", back_populates="findings")
 
 
 def create_tables():
