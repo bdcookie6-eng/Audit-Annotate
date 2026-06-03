@@ -55,3 +55,19 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+# Serve built React frontend — must come last so /api routes take priority
+_FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "static_frontend")
+if os.path.isdir(_FRONTEND_DIR):
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles as _SF
+
+    app.mount("/assets", _SF(directory=os.path.join(_FRONTEND_DIR, "assets"), name="assets"))
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = os.path.join(_FRONTEND_DIR, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(_FRONTEND_DIR, "index.html"))
