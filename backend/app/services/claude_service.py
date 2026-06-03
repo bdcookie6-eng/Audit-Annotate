@@ -120,53 +120,167 @@ async def generate_document_summary(extracted_data: dict, findings: list) -> str
     return response.choices[0].message.content.strip()
 
 
-REPORT_SYSTEM = """You are a licensed CPA writing a formal audit report following US GAAP and AICPA standards.
-Write in clear, professional language. Use standard audit report structure. Be specific about figures.
-Do not hallucinate — only reference data explicitly provided."""
+REPORT_SYSTEM = """You are a licensed CPA partner at a public accounting firm drafting a formal Independent Auditor's Report for partner review before issuance. You follow AICPA AU-C Section 700 (Forming an Opinion and Reporting on Financial Statements) precisely.
+
+Rules:
+- Use exact AU-C 700 paragraph language — partners will check wording against the standard
+- Do NOT hallucinate figures — use only numbers explicitly provided in the prompt
+- Determine opinion type from findings: unmodified if no errors, qualified if errors exist but statements are otherwise fairly presented, adverse only if pervasive material misstatements
+- Calculate and state materiality threshold (use 5% of the largest relevant benchmark: total assets, total revenue, or net income/loss)
+- Every material finding must be cited with the exact dollar amount and account name from the data
+- All placeholders for firm/auditor signature use [FIRM NAME], [CITY, STATE], [REPORT DATE]
+- The report should read as a near-final draft a partner would mark up, not a template"""
+
+
+def _compute_materiality(extracted_data: dict) -> tuple[float, str]:
+    """Return (threshold, benchmark_label) for the engagement."""
+    total = extracted_data.get("total") or {}
+    total_val = abs(float(total.get("current_year") or 0))
+
+    # Try total assets first, then total revenue from sections
+    if total_val > 0:
+        threshold = total_val * 0.05
+        return threshold, f"5% of total ({_fmt_dollars(total_val)})"
+
+    sections = extracted_data.get("sections", [])
+    for section in sections:
+        sub = section.get("subtotal") or {}
+        val = abs(float(sub.get("current_year") or 0))
+        if val > 0:
+            threshold = val * 0.05
+            return threshold, f"5% of {section['name']} subtotal ({_fmt_dollars(val)})"
+
+    return 0.0, "not determinable from available data"
+
+
+def _fmt_dollars(val: float) -> str:
+    if val >= 1_000_000:
+        return f"${val / 1_000_000:,.2f}M"
+    if val >= 1_000:
+        return f"${val / 1_000:,.1f}K"
+    return f"${val:,.0f}"
+
 
 async def generate_audit_report(extracted_data: dict, findings: list, client_name: str, period: str) -> str:
     client = get_client()
 
-    findings_text = "\n".join(
-        f"- [{f.get('severity','info').upper()}] {f.get('title')}: {f.get('description')}"
-        for f in findings
-    ) or "No material findings identified."
-
-    errors = [f for f in findings if f.get("severity") == "error"]
+    errors   = [f for f in findings if f.get("severity") == "error"]
     warnings = [f for f in findings if f.get("severity") == "warning"]
+    infos    = [f for f in findings if f.get("severity") == "info"]
 
-    prompt = f"""Generate a formal GAAP audit report for the following engagement.
+    opinion_type = "qualified" if errors else "unmodified"
 
-CLIENT: {client_name or "Client"}
-PERIOD: {period or "the period under review"}
-STATEMENT TYPE: {extracted_data.get("statement_type", "financial statement").replace("_", " ").title()}
-ERRORS ({len(errors)}): {len(errors)} material findings
-WARNINGS ({len(warnings)}): {len(warnings)} items requiring attention
+    materiality_threshold, materiality_basis = _compute_materiality(extracted_data)
+    materiality_str = (
+        f"${materiality_threshold:,.0f} ({materiality_basis})"
+        if materiality_threshold > 0 else materiality_basis
+    )
 
-FINDINGS:
-{findings_text}
+    stmt_type = extracted_data.get("statement_type", "financial statement").replace("_", " ").title()
+    entity    = client_name or "[ENTITY NAME]"
+    period_str = period or "[PERIOD]"
 
-FINANCIAL DATA SUMMARY:
-{json.dumps({k: v for k, v in extracted_data.items() if k not in ("_raw_text", "sections")}, indent=2)[:3000]}
+    def fmt_finding(f: dict, idx: int) -> str:
+        lines = [f"  Finding {idx}. {f.get('title')}"]
+        lines.append(f"     {f.get('description')}")
+        if f.get("field_name"):
+            lines.append(f"     Account/Field: {f['field_name']}")
+        if f.get("expected_value") is not None:
+            lines.append(f"     Expected: {_fmt_dollars(abs(float(f['expected_value'])))}")
+        if f.get("actual_value") is not None:
+            lines.append(f"     Actual:   {_fmt_dollars(abs(float(f['actual_value'])))}")
+        return "\n".join(lines)
 
-Write the report with these sections:
-1. Independent Auditor's Report header
-2. Opinion paragraph (qualified if errors exist, unqualified if clean)
-3. Basis for Opinion
-4. Material Findings (detail each error finding with account references and dollar amounts)
-5. Matters Requiring Attention (warnings)
-6. Management's Responsibilities
-7. Auditor's Responsibilities
-8. Signature block (use [Auditor Name] and [Date] as placeholders)
+    errors_text   = "\n\n".join(fmt_finding(f, i+1) for i, f in enumerate(errors))   or "None"
+    warnings_text = "\n\n".join(fmt_finding(f, i+1) for i, f in enumerate(warnings)) or "None"
+    infos_text    = "\n\n".join(fmt_finding(f, i+1) for i, f in enumerate(infos))    or "None"
 
-Follow AICPA AU-C Section 700 format. Be precise with figures from the data."""
+    # Pull key financial figures for the report body
+    total = extracted_data.get("total") or {}
+    total_cy = total.get("current_year")
+    total_label = total.get("label", "Total")
+
+    section_summary = []
+    for s in extracted_data.get("sections", [])[:6]:
+        sub = s.get("subtotal") or {}
+        cy = sub.get("current_year")
+        if cy is not None:
+            section_summary.append(f"  {s['name']}: {_fmt_dollars(abs(float(cy)))}")
+    section_text = "\n".join(section_summary) or "  (section detail not available)"
+
+    prompt = f"""Draft a partner-ready Independent Auditor's Report following AICPA AU-C Section 700.
+
+=== ENGAGEMENT DATA ===
+Entity: {entity}
+Period: {period_str}
+Statement Type: {stmt_type}
+Opinion Type: {opinion_type.upper()}
+Materiality Threshold: {materiality_str}
+
+=== FINANCIAL SUMMARY ===
+{section_text}
+{f"  {total_label}: {_fmt_dollars(abs(float(total_cy)))}" if total_cy is not None else ""}
+
+=== MATERIAL FINDINGS (errors — {len(errors)}) ===
+{errors_text}
+
+=== MATTERS REQUIRING ATTENTION (warnings — {len(warnings)}) ===
+{warnings_text}
+
+=== INFORMATIONAL ITEMS ({len(infos)}) ===
+{infos_text}
+
+=== INSTRUCTIONS ===
+Write the complete report in this exact order:
+
+1. REPORT HEADER
+   "INDEPENDENT AUDITOR'S REPORT"
+   To the [Board of Directors / Members / Owners] of {entity}
+
+2. OPINION PARAGRAPH (first, per current AU-C 700 requirement)
+   - State {"unmodified" if opinion_type == "unmodified" else "qualified"} opinion explicitly
+   - Name the exact statements audited, the entity, and the period
+   - If qualified, state the basis for qualification in one clear sentence referencing the specific finding(s)
+
+3. BASIS FOR OPINION PARAGRAPH
+   - Conducted in accordance with auditing standards generally accepted in the United States of America (GAAS)
+   - Reference auditor independence and ethical requirements
+   - State that reasonable assurance was obtained {"" if opinion_type == "unmodified" else "(except as described above)"}
+
+4. MATERIALITY
+   - State the materiality threshold of {materiality_str} and the benchmark used
+
+5. MATERIAL FINDINGS (only if errors exist — {len(errors)} found)
+   - Number each finding
+   - Cite exact dollar amounts and account names
+   - State whether the finding is isolated or systemic
+   - State auditor's conclusion on each
+
+6. MATTERS REQUIRING ATTENTION (only if warnings exist — {len(warnings)} found)
+   - Each warning as a separate paragraph
+   - Include the specific figures
+
+7. MANAGEMENT'S RESPONSIBILITIES
+   - AU-C 700 standard language: preparation and fair presentation, internal controls
+
+8. AUDITOR'S RESPONSIBILITIES
+   - AU-C 700 standard language: reasonable assurance, risk assessment, procedures
+   - Note that the audit does not provide absolute assurance
+
+9. SIGNATURE BLOCK
+   [FIRM NAME]
+   Certified Public Accountants
+   [CITY, STATE]
+   [REPORT DATE]
+
+Write the full report now. Use formal, precise language. Every dollar figure must come from the data provided above — do not invent numbers."""
 
     response = await client.chat.completions.create(
         model=EXTRACTION_MODEL,
         max_tokens=4096,
         messages=[
             {"role": "system", "content": REPORT_SYSTEM},
-            {"role": "user", "content": prompt},
+            {"role": "user",   "content": prompt},
         ],
     )
     return response.choices[0].message.content.strip()
