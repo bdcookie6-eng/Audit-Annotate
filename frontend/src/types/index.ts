@@ -63,6 +63,8 @@ export interface Document {
   error_message: string | null
   findings: Finding[]
   created_at: string | null
+  summary: string | null
+  client_name: string | null
 }
 
 export interface ChatMessage {

@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..db.database import DocumentModel, FindingModel, get_db
-from ..services.claude_service import generate_document_summary, stream_chat_response
+from ..services.claude_service import generate_document_summary, stream_chat_response  # noqa: F401 generate_document_summary used in get_summary fallback
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,6 +20,11 @@ async def get_summary(doc_id: str, db: Session = Depends(get_db)):
     if doc.status != "ready":
         return {"summary": "Document is still being processed…"}
 
+    # Serve cached summary if available
+    if doc.summary:
+        return {"summary": doc.summary}
+
+    # Fallback: generate on demand and cache for next time
     findings = db.query(FindingModel).filter(FindingModel.document_id == doc_id).all()
     findings_list = [
         {"severity": f.severity, "title": f.title, "description": f.description}
@@ -27,6 +32,8 @@ async def get_summary(doc_id: str, db: Session = Depends(get_db)):
     ]
     extracted = {k: v for k, v in (doc.extracted_data or {}).items() if k != "_raw_text"}
     summary = await generate_document_summary(extracted, findings_list)
+    doc.summary = summary
+    db.commit()
     return {"summary": summary}
 
 

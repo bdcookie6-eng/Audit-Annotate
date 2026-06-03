@@ -4,12 +4,12 @@ import logging
 import asyncio
 
 import aiofiles
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..db.database import DocumentModel, FindingModel, get_db
 from ..services.audit_checks import run_all_checks
-from ..services.claude_service import extract_financial_data
+from ..services.claude_service import extract_financial_data, generate_document_summary
 from ..services.document_processor import extract_document_text, find_text_in_pdf
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,8 @@ def _doc_to_dict(doc: DocumentModel, db: Session) -> dict:
             for f in findings
         ],
         "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        "summary": doc.summary,
+        "client_name": doc.client_name,
     }
 
 
@@ -87,6 +89,18 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
 
         doc.extracted_data = extracted
         doc.statement_type = extracted.get("statement_type", "unknown")
+
+        findings_list = [
+            {"severity": f["severity"], "title": f["title"], "description": f["description"]}
+            for f in findings
+        ]
+        extracted_for_summary = {k: v for k, v in extracted.items() if k != "_raw_text"}
+        try:
+            doc.summary = await generate_document_summary(extracted_for_summary, findings_list)
+        except Exception:
+            logger.warning("Summary generation failed for %s", doc_id)
+            doc.summary = None
+
         doc.status = "ready"
 
         for f in findings:
@@ -121,6 +135,7 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    client_name: str = Form(""),
     db: Session = Depends(get_db),
 ):
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
@@ -142,13 +157,14 @@ async def upload_document(
         file_path=file_path,
         file_type=file_type,
         status="processing",
+        client_name=client_name.strip() or None,
     )
     db.add(doc)
     db.commit()
 
     background_tasks.add_task(_process_document, doc_id, file_path, file_type)
 
-    return {"id": doc_id, "filename": file.filename, "file_type": file_type, "status": "processing"}
+    return {"id": doc_id, "filename": file.filename, "file_type": file_type, "status": "processing", "client_name": doc.client_name}
 
 
 @router.get("/")

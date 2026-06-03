@@ -38,11 +38,11 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  const handleUpload = useCallback(async (file: File) => {
+  const handleUpload = useCallback(async (file: File, clientName?: string) => {
     setUploading(true)
     setUploadError(null)
     try {
-      const { id } = await uploadDocument(file)
+      const { id } = await uploadDocument(file, clientName)
       // Poll until ready
       await new Promise<void>((resolve, reject) => {
         const interval = setInterval(async () => {
@@ -101,7 +101,7 @@ export default function App() {
   if (appState === 'home') {
     return (
       <div className="relative">
-        <UploadZone onUpload={handleUpload} uploading={uploading} error={uploadError} />
+        <UploadZone onUpload={(file, cn) => handleUpload(file, cn)} uploading={uploading} error={uploadError} />
         {recentDocs.length > 0 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-lg px-6">
             <div className="bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 p-4">
@@ -119,7 +119,8 @@ export default function App() {
                       <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm text-slate-200 truncate">{doc.filename}</p>
-                        <p className="text-xs text-slate-500 capitalize">
+                        <p className="text-xs text-slate-500 capitalize truncate">
+                          {doc.client_name && <span className="text-slate-400 mr-1">{doc.client_name} ·</span>}
                           {doc.statement_type?.replace(/_/g, ' ') ?? 'Unknown type'} ·{' '}
                           {doc.findings.filter(f => f.severity === 'error').length} errors,{' '}
                           {doc.findings.filter(f => f.severity === 'warning').length} warnings
@@ -159,6 +160,10 @@ export default function App() {
         {activeDocument && (
           <>
             <div className="w-px h-4 bg-slate-600" />
+            {activeDocument.client_name && (
+              <span className="text-xs text-slate-300 font-medium truncate max-w-[120px]">{activeDocument.client_name}</span>
+            )}
+            {activeDocument.client_name && <div className="w-px h-4 bg-slate-600" />}
             <span className="text-xs text-slate-400 truncate max-w-xs">{activeDocument.filename}</span>
             <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
               activeDocument.statement_type === 'balance_sheet' ? 'bg-purple-900/60 text-purple-300' :

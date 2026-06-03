@@ -3,13 +3,14 @@ import { Upload, FileText, AlertCircle } from 'lucide-react'
 import ToolNav from './ToolNav'
 
 interface Props {
-  onUpload: (file: File) => void
+  onUpload: (file: File, clientName?: string) => void
   uploading: boolean
   error: string | null
 }
 
 export default function UploadZone({ onUpload, uploading, error }: Props) {
   const [dragging, setDragging] = useState(false)
+  const [clientName, setClientName] = useState('')
 
   const handleFile = useCallback(
     (file: File) => {
@@ -19,9 +20,9 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         alert(`Unsupported file type: .${ext}\nSupported: PDF, Excel (.xlsx/.xls), CSV`)
         return
       }
-      onUpload(file)
+      onUpload(file, clientName.trim() || undefined)
     },
-    [onUpload]
+    [onUpload, clientName]
   )
 
   const onDrop = useCallback(
@@ -64,6 +65,22 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         <p className="text-slate-400 text-sm max-w-sm">
           AI-powered financial statement audit workbench for CPA teams
         </p>
+      </div>
+
+      {/* Client / Engagement field */}
+      <div className="w-full max-w-lg mb-4">
+        <label className="block text-xs text-slate-400 mb-1.5">
+          Client / Engagement <span className="text-slate-600">(optional — labels the document)</span>
+        </label>
+        <input
+          type="text"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+          placeholder="e.g. Acme Corp — FY2024"
+          maxLength={80}
+          disabled={uploading}
+          className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+        />
       </div>
 
       {/* Drop zone */}

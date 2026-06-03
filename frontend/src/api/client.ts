@@ -2,9 +2,10 @@ import type { Document } from '../types'
 
 const BASE = '/api'
 
-export async function uploadDocument(file: File): Promise<{ id: string; status: string }> {
+export async function uploadDocument(file: File, clientName?: string): Promise<{ id: string; status: string }> {
   const form = new FormData()
   form.append('file', file)
+  if (clientName) form.append('client_name', clientName)
   const res = await fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))

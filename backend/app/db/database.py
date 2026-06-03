@@ -24,6 +24,8 @@ class DocumentModel(Base):
     extracted_data = Column(JSON)
     status = Column(String, default="processing")  # processing | ready | error
     error_message = Column(Text)
+    summary = Column(Text)
+    client_name = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

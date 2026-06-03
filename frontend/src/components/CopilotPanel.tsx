@@ -54,14 +54,19 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load summary on mount
+  // Use cached summary from document if available; otherwise fetch on demand
   useEffect(() => {
+    if (doc.summary) {
+      setSummary(doc.summary)
+      setSummaryLoading(false)
+      return
+    }
     setSummaryLoading(true)
     getSummary(doc.id)
       .then(({ summary }) => setSummary(summary))
       .catch(() => setSummary('Unable to generate summary.'))
       .finally(() => setSummaryLoading(false))
-  }, [doc.id])
+  }, [doc.id, doc.summary])
 
   // Auto-scroll chat
   useEffect(() => {

@@ -49,14 +49,9 @@ export default function FindingCard({ finding, isSelected, onClick, onStatusChan
         <div className="flex items-start gap-2.5">
           {/* Numbered badge */}
           {finding.number != null ? (
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5`}
-              style={{ backgroundColor: cfg.bg.replace('bg-', ''), border: `2px solid` }}
-            >
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${cfg.badge}`}>
-                {finding.number}
-              </span>
-            </div>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${cfg.badge}`}>
+              {finding.number}
+            </span>
           ) : (
             <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${cfg.text}`} />
           )}

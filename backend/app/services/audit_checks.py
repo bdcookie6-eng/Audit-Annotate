@@ -171,10 +171,162 @@ def check_prior_year_variances(extracted_data: dict) -> list:
     return findings
 
 
+def _find_section_value(sections: list, *keywords: str) -> Optional[float]:
+    """Return the subtotal current_year for the first section whose name contains all keywords."""
+    kws = [k.lower() for k in keywords]
+    for section in sections:
+        name = section.get("name", "").lower()
+        if all(k in name for k in kws):
+            sub = section.get("subtotal") or {}
+            return _float(sub.get("current_year"))
+    return None
+
+
+def _find_item_value(sections: list, *keywords: str) -> Optional[float]:
+    """Return current_year for the first line item whose label contains all keywords."""
+    kws = [k.lower() for k in keywords]
+    for section in sections:
+        for item in section.get("line_items", []):
+            label = (item.get("label") or "").lower()
+            if all(k in label for k in kws):
+                return _float(item.get("current_year"))
+        sub = section.get("subtotal") or {}
+        label = (sub.get("label") or "").lower()
+        if all(k in label for k in kws):
+            return _float(sub.get("current_year"))
+    return None
+
+
+def check_income_statement(extracted_data: dict) -> list:
+    if extracted_data.get("statement_type") != "income_statement":
+        return []
+
+    findings = []
+    sections = extracted_data.get("sections", [])
+
+    # ── Gross margin check ─────────────────────────────────────────────────
+    revenue = _find_section_value(sections, "revenue") or _find_section_value(sections, "net revenue")
+    if revenue is None:
+        revenue = _find_item_value(sections, "revenue") or _find_item_value(sections, "net sales")
+
+    cogs = _find_section_value(sections, "cost of") or _find_item_value(sections, "cost of goods") or _find_item_value(sections, "cost of sales")
+    gross_profit = _find_section_value(sections, "gross profit") or _find_item_value(sections, "gross profit")
+
+    if revenue and revenue != 0 and gross_profit is not None:
+        gm_pct = gross_profit / revenue
+        if gm_pct < 0:
+            findings.append(_finding(
+                check_type="income_statement",
+                severity="error",
+                title="Negative Gross Margin",
+                description=(
+                    f"Gross profit is {_fmt(gross_profit)} on revenue of {_fmt(revenue)}, "
+                    f"yielding a gross margin of {gm_pct:.1%}. "
+                    f"Negative gross margin means cost of goods exceeds revenue — verify COGS and revenue figures."
+                ),
+                field_name="Gross Profit",
+                expected=revenue * 0,
+                actual=gross_profit,
+            ))
+        elif gm_pct > 0.95:
+            findings.append(_finding(
+                check_type="income_statement",
+                severity="warning",
+                title=f"Unusually High Gross Margin ({gm_pct:.1%})",
+                description=(
+                    f"Gross margin of {gm_pct:.1%} is atypically high. "
+                    f"Verify that all cost of goods / cost of sales items are captured."
+                ),
+                field_name="Gross Profit",
+                actual=gm_pct,
+            ))
+
+    # ── Revenue vs. prior year (separate from line-item variance scan) ─────
+    if revenue is not None:
+        py_revenue = None
+        for section in sections:
+            name = section.get("name", "").lower()
+            if "revenue" in name or "sales" in name:
+                sub = section.get("subtotal") or {}
+                py_revenue = _float(sub.get("prior_year"))
+                if py_revenue:
+                    break
+        if py_revenue and py_revenue != 0:
+            pct = (revenue - py_revenue) / abs(py_revenue)
+            if abs(pct) >= SIGNIFICANT_VARIANCE_PCT:
+                findings.append(_finding(
+                    check_type="income_statement",
+                    severity="warning",
+                    title=f"Revenue Changed {pct:+.1%} Year-Over-Year",
+                    description=(
+                        f"Total revenue moved from {_fmt(py_revenue)} to {_fmt(revenue)} ({pct:+.1%}). "
+                        f"Document the business reason for this change in the audit file."
+                    ),
+                    field_name="Total Revenue",
+                    expected=py_revenue,
+                    actual=revenue,
+                ))
+
+    # ── Operating expense ratio check ──────────────────────────────────────
+    opex = _find_section_value(sections, "operating expense") or _find_section_value(sections, "selling") or _find_section_value(sections, "general and admin")
+    if revenue and revenue != 0 and opex is not None:
+        opex_ratio = opex / revenue
+        if opex_ratio > 1.0:
+            findings.append(_finding(
+                check_type="income_statement",
+                severity="warning",
+                title=f"Operating Expenses Exceed Revenue ({opex_ratio:.1%})",
+                description=(
+                    f"Operating expenses of {_fmt(opex)} represent {opex_ratio:.1%} of revenue {_fmt(revenue)}. "
+                    f"This indicates an operating loss. Confirm this is expected and review expense classification."
+                ),
+                field_name="Operating Expenses",
+                expected=revenue,
+                actual=opex,
+            ))
+
+    return findings
+
+
+def check_balance_sheet_completeness(extracted_data: dict) -> list:
+    """Flag a balance sheet if key sections (assets / liabilities / equity) appear to be missing."""
+    if extracted_data.get("statement_type") != "balance_sheet":
+        return []
+
+    findings = []
+    sections = extracted_data.get("sections", [])
+    names = " ".join(s.get("name", "").lower() for s in sections)
+
+    if "asset" not in names:
+        findings.append(_finding(
+            check_type="balance_sheet_completeness",
+            severity="warning",
+            title="No Assets Section Detected",
+            description="Could not identify an Assets section in this balance sheet. Verify the document was extracted correctly.",
+        ))
+    if "liabilit" not in names:
+        findings.append(_finding(
+            check_type="balance_sheet_completeness",
+            severity="warning",
+            title="No Liabilities Section Detected",
+            description="Could not identify a Liabilities section. The balance sheet may be incomplete or use non-standard labeling.",
+        ))
+    if "equity" not in names:
+        findings.append(_finding(
+            check_type="balance_sheet_completeness",
+            severity="warning",
+            title="No Equity Section Detected",
+            description="Could not identify an Equity section. Verify all sections were captured from the source document.",
+        ))
+    return findings
+
+
 def run_all_checks(extracted_data: dict) -> list:
     findings = (
         check_footing(extracted_data)
         + check_balance_sheet_equation(extracted_data)
+        + check_balance_sheet_completeness(extracted_data)
+        + check_income_statement(extracted_data)
         + check_prior_year_variances(extracted_data)
     )
     order = {"error": 0, "warning": 1, "info": 2}

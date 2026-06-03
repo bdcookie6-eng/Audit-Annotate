@@ -7,16 +7,16 @@ import anthropic
 
 logger = logging.getLogger(__name__)
 
-_client: anthropic.Anthropic | None = None
+_client: anthropic.AsyncAnthropic | None = None
 
 
-def get_client() -> anthropic.Anthropic:
+def get_client() -> anthropic.AsyncAnthropic:
     global _client
     if _client is None:
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set.")
-        _client = anthropic.Anthropic(api_key=api_key)
+        _client = anthropic.AsyncAnthropic(api_key=api_key)
     return _client
 
 
@@ -72,10 +72,10 @@ Rules:
 
 async def extract_financial_data(document_text: str) -> dict:
     client = get_client()
-    message = client.messages.create(
+    message = await client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=8192,
-        system=EXTRACTION_SYSTEM,
+        system=[{"type": "text", "text": EXTRACTION_SYSTEM, "cache_control": {"type": "ephemeral"}}],
         messages=[
             {"role": "user", "content": f"Extract financial data from this document:\n\n{document_text[:60000]}"}
         ],
@@ -105,7 +105,7 @@ async def generate_document_summary(extracted_data: dict, findings: list) -> str
         f"Write a 2-4 sentence professional summary for the auditor: what document this is, "
         f"the reporting period, the most critical issues, and what to focus on first."
     )
-    message = client.messages.create(
+    message = await client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=400,
         messages=[{"role": "user", "content": prompt}],
@@ -126,19 +126,29 @@ async def stream_chat_response(
     history: list,
 ) -> AsyncGenerator[str, None]:
     client = get_client()
-    system = (
-        COPILOT_SYSTEM
-        + f"\n\nDOCUMENT DATA:\n{json.dumps(extracted_data, indent=2)[:12000]}"
-        + (f"\n\nORIGINAL TEXT (excerpt):\n{document_text[:8000]}" if document_text else "")
-    )
+    doc_data_json = json.dumps(extracted_data, indent=2)[:12000]
+    system = [
+        {
+            "type": "text",
+            "text": COPILOT_SYSTEM + f"\n\nDOCUMENT DATA:\n{doc_data_json}",
+            "cache_control": {"type": "ephemeral"},
+        }
+    ]
+    if document_text:
+        system.append({
+            "type": "text",
+            "text": f"ORIGINAL TEXT (excerpt):\n{document_text[:8000]}",
+            "cache_control": {"type": "ephemeral"},
+        })
+
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": message})
 
-    with client.messages.stream(
+    async with client.messages.stream(
         model="claude-sonnet-4-6",
         max_tokens=2048,
         system=system,
         messages=messages,
     ) as stream:
-        for chunk in stream.text_stream:
+        async for chunk in stream.text_stream:
             yield chunk
