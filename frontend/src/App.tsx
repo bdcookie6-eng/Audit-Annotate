@@ -126,8 +126,8 @@ export default function App() {
         <UploadZone onUpload={(file, cn) => handleUpload(file, cn)} uploading={uploading} error={uploadError} />
         {recentDocs.length > 0 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-lg px-6">
-            <div className="bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 p-4">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-md">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <Clock className="w-3 h-3" /> Recent Documents
               </p>
               <div className="space-y-1.5">
@@ -135,14 +135,14 @@ export default function App() {
                   <div
                     key={doc.id}
                     onClick={() => handleOpenDocument(doc)}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 cursor-pointer transition-colors group"
+                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#EEF7F4] hover:bg-[#D6EDE7] cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                      <FileText className="w-4 h-4 text-slate-500 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm text-slate-200 truncate">{doc.filename}</p>
+                        <p className="text-sm text-slate-800 truncate">{doc.filename}</p>
                         <p className="text-xs text-slate-500 capitalize truncate">
-                          {doc.client_name && <span className="text-slate-400 mr-1">{doc.client_name} ·</span>}
+                          {doc.client_name && <span className="text-slate-500 mr-1">{doc.client_name} ·</span>}
                           {doc.statement_type?.replace(/_/g, ' ') ?? 'Unknown type'} ·{' '}
                           {doc.findings.filter(f => f.severity === 'error').length} errors,{' '}
                           {doc.findings.filter(f => f.severity === 'warning').length} warnings
@@ -151,7 +151,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={(e) => handleDeleteDocument(doc.id, e)}
-                      className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 ml-2 shrink-0"
+                      className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 ml-2 shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -167,31 +167,31 @@ export default function App() {
 
   // Workbench view
   return (
-    <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#f1f5f9] overflow-hidden">
       {/* Top bar */}
-      <header className="flex items-center gap-3 px-4 py-2.5 bg-slate-800 border-b border-slate-700/50 shrink-0">
+      <header className="flex items-center gap-3 px-4 py-2.5 bg-[#1A5C4A] border-b border-[#154D3E] shrink-0">
         <button
           onClick={() => setAppState('home')}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-xs"
+          className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-xs"
         >
           <ChevronLeft className="w-4 h-4" />
           Back
         </button>
-        <div className="w-px h-4 bg-slate-600" />
+        <div className="w-px h-4 bg-white/20" />
         <ToolNav />
         {activeDocument && (
           <>
-            <div className="w-px h-4 bg-slate-600" />
+            <div className="w-px h-4 bg-white/20" />
             {activeDocument.client_name && (
-              <span className="text-xs text-slate-300 font-medium truncate max-w-[120px]">{activeDocument.client_name}</span>
+              <span className="text-xs text-white font-medium truncate max-w-[120px]">{activeDocument.client_name}</span>
             )}
-            {activeDocument.client_name && <div className="w-px h-4 bg-slate-600" />}
-            <span className="text-xs text-slate-400 truncate max-w-xs">{activeDocument.filename}</span>
+            {activeDocument.client_name && <div className="w-px h-4 bg-white/20" />}
+            <span className="text-xs text-white/70 truncate max-w-xs">{activeDocument.filename}</span>
             <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-              activeDocument.statement_type === 'balance_sheet' ? 'bg-purple-900/60 text-purple-300' :
-              activeDocument.statement_type === 'income_statement' ? 'bg-green-900/60 text-green-300' :
-              activeDocument.statement_type === 'cash_flow' ? 'bg-cyan-900/60 text-cyan-300' :
-              'bg-slate-700 text-slate-400'
+              activeDocument.statement_type === 'balance_sheet' ? 'bg-purple-100 text-purple-700' :
+              activeDocument.statement_type === 'income_statement' ? 'bg-[#EEF7F4] text-[#1A5C4A]' :
+              activeDocument.statement_type === 'cash_flow' ? 'bg-cyan-100 text-cyan-700' :
+              'bg-white/20 text-white'
             }`}>
               {activeDocument.statement_type?.replace(/_/g, ' ') ?? 'Unknown'}
             </span>
@@ -209,7 +209,7 @@ export default function App() {
               }
               input.click()
             }}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-[#1A5C4A] hover:bg-[#D6EDE7] rounded-lg transition-colors font-medium"
           >
             <Upload className="w-3 h-3" />
             New Document
@@ -221,7 +221,7 @@ export default function App() {
       {activeDocument && (
         <div className="flex-1 overflow-hidden flex">
           {/* Left: AI Copilot (38%) */}
-          <div className="w-[38%] min-w-[300px] flex flex-col overflow-hidden border-r border-slate-700/50">
+          <div className="w-[38%] min-w-[300px] flex flex-col overflow-hidden border-r border-slate-200">
             <CopilotPanel
               document={activeDocument}
               numberedFindings={numberedFindings}

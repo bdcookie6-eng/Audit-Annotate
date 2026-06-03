@@ -41,11 +41,11 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900">
+    <div className="min-h-screen flex flex-col bg-[#f1f5f9]">
       {/* Top bar with tool nav */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-slate-700/50 bg-slate-800/40">
+      <header className="flex items-center justify-between px-6 py-3 border-b border-[#154D3E] bg-[#1A5C4A]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+          <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
             <FileText className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="text-sm font-semibold text-white">Audit Suite</span>
@@ -57,18 +57,18 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
       {/* Header */}
       <div className="mb-10 text-center">
         <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-[#1A5C4A] rounded-lg flex items-center justify-center">
             <FileText className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Audit & Annotate</h1>
+          <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">Audit & Annotate</h1>
         </div>
-        <p className="text-slate-400 text-sm">AI audit workbench for CPA teams</p>
+        <p className="text-slate-500 text-sm">AI audit workbench for CPA teams</p>
       </div>
 
       {/* Client / Engagement field */}
       <div className="w-full max-w-lg mb-4">
-        <label className="block text-xs text-slate-400 mb-1.5">
-          Client / Engagement <span className="text-slate-600">(optional — labels the document)</span>
+        <label className="block text-xs text-slate-500 mb-1.5">
+          Client / Engagement <span className="text-slate-400">(optional — labels the document)</span>
         </label>
         <input
           type="text"
@@ -77,7 +77,7 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
           placeholder="e.g. Acme Corp — FY2024"
           maxLength={80}
           disabled={uploading}
-          className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+          className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1A5C4A] disabled:opacity-50"
         />
       </div>
 
@@ -88,8 +88,8 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         onDrop={onDrop}
         className={`
           w-full max-w-lg border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-200
-          ${dragging ? 'border-blue-500 bg-blue-950/30' : 'border-slate-600 bg-slate-800/40'}
-          ${uploading ? 'opacity-60 pointer-events-none' : 'cursor-pointer hover:border-slate-400 hover:bg-slate-800/60'}
+          ${dragging ? 'border-[#1A5C4A] bg-[#EEF7F4]' : 'border-slate-200 bg-white'}
+          ${uploading ? 'opacity-60 pointer-events-none' : 'cursor-pointer hover:border-[#1A5C4A] hover:bg-[#EEF7F4]'}
         `}
         onClick={() => !uploading && document.getElementById('file-input')?.click()}
       >
@@ -104,23 +104,23 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         <div className="flex flex-col items-center gap-4">
           {uploading ? (
             <>
-              <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-slate-300 font-medium">Processing…</p>
+              <div className="w-12 h-12 border-2 border-[#1A5C4A] border-t-transparent rounded-full animate-spin" />
+              <p className="text-slate-700 font-medium">Processing…</p>
             </>
           ) : (
             <>
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${dragging ? 'bg-blue-600' : 'bg-slate-700'}`}>
-                <Upload className={`w-7 h-7 ${dragging ? 'text-white' : 'text-slate-300'}`} />
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${dragging ? 'bg-[#1A5C4A]' : 'bg-slate-100'}`}>
+                <Upload className={`w-7 h-7 ${dragging ? 'text-white' : 'text-slate-500'}`} />
               </div>
               <div>
-                <p className="text-white font-medium mb-1">
+                <p className="text-slate-800 font-medium mb-1">
                   {dragging ? 'Drop to upload' : 'Upload financial document'}
                 </p>
-                <p className="text-slate-400 text-sm">Drag & drop or click to browse</p>
+                <p className="text-slate-500 text-sm">Drag & drop or click to browse</p>
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
                 {['PDF', 'Excel (.xlsx)', 'CSV'].map((fmt) => (
-                  <span key={fmt} className="text-xs px-2.5 py-1 bg-slate-700 text-slate-300 rounded-full">
+                  <span key={fmt} className="text-xs px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full">
                     {fmt}
                   </span>
                 ))}
@@ -131,7 +131,7 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
       </div>
 
       {error && (
-        <div className="mt-4 flex items-start gap-2 text-red-400 text-sm max-w-lg">
+        <div className="mt-4 flex items-start gap-2 text-red-600 text-sm max-w-lg">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>

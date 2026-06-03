@@ -21,17 +21,17 @@ function FindingsBadge({ findings }: { findings: Finding[] }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {errors > 0 && (
-        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-red-900/60 text-red-300 rounded-full">
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
           <AlertCircle className="w-3 h-3" />{errors} error{errors !== 1 ? 's' : ''}
         </span>
       )}
       {warnings > 0 && (
-        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-amber-900/60 text-amber-300 rounded-full">
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
           <AlertTriangle className="w-3 h-3" />{warnings} warning{warnings !== 1 ? 's' : ''}
         </span>
       )}
       {infos > 0 && (
-        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-900/60 text-blue-300 rounded-full">
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-[#EEF7F4] text-[#1A5C4A] rounded-full">
           <Info className="w-3 h-3" />{infos} info
         </span>
       )}
@@ -139,25 +139,25 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
   const reviewedCount = numberedFindings.filter(f => f.status !== 'open').length
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-slate-700/50 bg-slate-800/30">
+      <div className="px-4 pt-4 pb-3 border-b border-slate-200 bg-[#EEF7F4]">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center shrink-0">
+          <div className="w-6 h-6 bg-[#1A5C4A] rounded flex items-center justify-center shrink-0">
             <Bot className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-sm font-semibold text-white">AI Audit Copilot</span>
+          <span className="text-sm font-semibold text-slate-800">AI Audit Copilot</span>
         </div>
 
         {/* Summary */}
-        <div className="bg-slate-800/60 rounded-lg p-3 mb-3">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 mb-3">
           {summaryLoading ? (
             <div className="flex items-center gap-2 text-slate-400 text-xs">
               <Loader className="w-3 h-3 animate-spin" />
               <span>Generating summary…</span>
             </div>
           ) : (
-            <p className="text-xs text-slate-300 leading-relaxed">{summary}</p>
+            <p className="text-xs text-slate-700 leading-relaxed">{summary}</p>
           )}
         </div>
 
@@ -182,7 +182,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
               }
             }}
             disabled={reportGenerating}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 bg-[#1A5C4A] hover:bg-[#154D3E] disabled:opacity-50 text-white rounded-lg transition-colors shrink-0"
           >
             {reportGenerating ? <Loader className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
             {reportGenerating ? 'Generating…' : 'GAAP Report'}
@@ -191,10 +191,10 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
       </div>
 
       {/* Findings section */}
-      <div className="border-b border-slate-700/50">
+      <div className="border-b border-slate-200">
         <button
           onClick={() => setShowFindings(!showFindings)}
-          className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
         >
           <span>FINDINGS ({doc.findings.length})</span>
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFindings ? '' : '-rotate-90'}`} />
@@ -209,7 +209,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`text-xs px-2.5 py-1 rounded transition-colors ${
-                    filter === f ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
+                    filter === f ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {f === 'open' ? `Open (${openCount})` : f === 'reviewed' ? `Reviewed (${reviewedCount})` : `All (${doc.findings.length})`}
@@ -219,7 +219,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
 
             <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
               {filteredFindings.length === 0 ? (
-                <p className="text-xs text-slate-600 text-center py-4">
+                <p className="text-xs text-slate-400 text-center py-4">
                   {filter === 'open' ? 'All findings reviewed.' : 'No findings.'}
                 </p>
               ) : (
@@ -242,7 +242,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-6">
-            <p className="text-xs text-slate-600 mb-3">Ask anything about this document</p>
+            <p className="text-xs text-slate-400 mb-3">Ask anything about this document</p>
             <div className="space-y-1.5">
               {[
                 'Are there any red flags I should investigate?',
@@ -252,7 +252,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
-                  className="block w-full text-left text-xs px-3 py-2 bg-slate-800/60 hover:bg-slate-700/60 text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
+                  className="block w-full text-left text-xs px-3 py-2 bg-[#EEF7F4] hover:bg-[#D6EDE7] text-slate-600 hover:text-slate-800 rounded-lg transition-colors border border-slate-200"
                 >
                   {prompt}
                 </button>
@@ -264,14 +264,14 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
             <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-              msg.role === 'user' ? 'bg-slate-700' : 'bg-blue-600'
+              msg.role === 'user' ? 'bg-slate-200' : 'bg-[#1A5C4A]'
             }`}>
-              {msg.role === 'user' ? <User className="w-3 h-3 text-slate-300" /> : <Bot className="w-3 h-3 text-white" />}
+              {msg.role === 'user' ? <User className="w-3 h-3 text-slate-600" /> : <Bot className="w-3 h-3 text-white" />}
             </div>
             <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
               msg.role === 'user'
-                ? 'bg-slate-700 text-slate-200 rounded-tr-sm'
-                : 'bg-slate-800 text-slate-200 rounded-tl-sm'
+                ? 'bg-slate-100 text-slate-800 rounded-tr-sm'
+                : 'bg-[#EEF7F4] text-slate-800 rounded-tl-sm border border-slate-200'
             } ${streaming && i === messages.length - 1 && msg.role === 'assistant' && msg.content === '' ? 'cursor-blink' : ''}`}>
               {msg.content || (streaming && i === messages.length - 1 ? '' : '…')}
             </div>
@@ -281,7 +281,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
       </div>
 
       {/* Input */}
-      <div className="px-3 pb-3 pt-2 border-t border-slate-700/50 bg-slate-800/20">
+      <div className="px-3 pb-3 pt-2 border-t border-slate-200 bg-white">
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}
@@ -291,13 +291,13 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
             placeholder="Ask about this document… (Enter to send)"
             disabled={streaming}
             rows={1}
-            className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:border-blue-500 disabled:opacity-50 max-h-24"
+            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 resize-none focus:outline-none focus:border-[#1A5C4A] disabled:opacity-50 max-h-24"
             style={{ minHeight: '36px' }}
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || streaming}
-            className="w-8 h-8 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors shrink-0"
+            className="w-8 h-8 bg-[#1A5C4A] hover:bg-[#154D3E] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors shrink-0"
           >
             {streaming ? (
               <Loader className="w-3.5 h-3.5 text-white animate-spin" />

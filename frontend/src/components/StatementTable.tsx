@@ -62,24 +62,24 @@ function AnnotationPopover({ finding, anchorRef, onClose }: AnnotationPopoverPro
   const SeverityIcon = finding.severity === 'error' ? AlertCircle
     : finding.severity === 'warning' ? AlertTriangle : Info
   const severityColors = finding.severity === 'error'
-    ? { border: 'border-red-500', bg: 'bg-red-950/80', badge: 'bg-red-600', text: 'text-red-300', icon: 'text-red-400' }
+    ? { border: 'border-red-300', bg: 'bg-white', badge: 'bg-red-100', text: 'text-red-700', icon: 'text-red-600' }
     : finding.severity === 'warning'
-    ? { border: 'border-amber-500', bg: 'bg-amber-950/80', badge: 'bg-amber-600', text: 'text-amber-300', icon: 'text-amber-400' }
-    : { border: 'border-blue-500', bg: 'bg-blue-950/80', badge: 'bg-blue-600', text: 'text-blue-300', icon: 'text-blue-400' }
+    ? { border: 'border-amber-300', bg: 'bg-white', badge: 'bg-amber-100', text: 'text-amber-700', icon: 'text-amber-600' }
+    : { border: 'border-[#1A5C4A]', bg: 'bg-white', badge: 'bg-[#EEF7F4]', text: 'text-[#1A5C4A]', icon: 'text-[#1A5C4A]' }
 
   return (
     <div
       ref={popoverRef}
-      className={`fixed z-50 w-80 rounded-lg border ${severityColors.border} ${severityColors.bg} shadow-xl backdrop-blur-sm`}
+      className={`fixed z-50 w-80 rounded-lg border ${severityColors.border} ${severityColors.bg} shadow-xl`}
       style={{ top: pos.top, left: pos.left }}
     >
       <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <SeverityIcon className={`w-4 h-4 shrink-0 ${severityColors.icon}`} />
-            <span className="text-sm font-semibold text-white leading-tight">{finding.title}</span>
+            <span className="text-sm font-semibold text-slate-800 leading-tight">{finding.title}</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white shrink-0">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -91,17 +91,17 @@ function AnnotationPopover({ finding, anchorRef, onClose }: AnnotationPopoverPro
         {(finding.expected_value !== null || finding.actual_value !== null) && (
           <div className="grid grid-cols-2 gap-2 mb-3">
             {finding.expected_value !== null && (
-              <div className="bg-slate-900/60 rounded p-2">
+              <div className="bg-slate-50 border border-slate-200 rounded p-2">
                 <div className="text-xs text-slate-500 mb-0.5">Expected</div>
-                <div className="text-sm font-mono font-semibold text-green-300">
+                <div className="text-sm font-mono font-semibold text-green-700">
                   {fmtFull(finding.expected_value)}
                 </div>
               </div>
             )}
             {finding.actual_value !== null && (
-              <div className="bg-slate-900/60 rounded p-2">
+              <div className="bg-slate-50 border border-slate-200 rounded p-2">
                 <div className="text-xs text-slate-500 mb-0.5">Actual</div>
-                <div className={`text-sm font-mono font-semibold ${finding.severity === 'error' ? 'text-red-300' : 'text-amber-300'}`}>
+                <div className={`text-sm font-mono font-semibold ${finding.severity === 'error' ? 'text-red-600' : 'text-amber-600'}`}>
                   {fmtFull(finding.actual_value)}
                 </div>
               </div>
@@ -110,16 +110,16 @@ function AnnotationPopover({ finding, anchorRef, onClose }: AnnotationPopoverPro
         )}
 
         {finding.field_name && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 border-t border-slate-700 pt-2">
-            <span className="text-slate-500">Source:</span>
-            <code className="bg-slate-900 px-1.5 py-0.5 rounded text-slate-300 font-mono">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 border-t border-slate-200 pt-2">
+            <span className="text-slate-400">Source:</span>
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-mono">
               {finding.field_name}
             </code>
           </div>
         )}
 
         {finding.note && (
-          <div className="mt-2 text-xs text-slate-400 italic border-t border-slate-700 pt-2">
+          <div className="mt-2 text-xs text-slate-500 italic border-t border-slate-200 pt-2">
             Note: {finding.note}
           </div>
         )}
@@ -154,11 +154,11 @@ function AmountCell({ value, unit, finding, isSelected, onSelect }: AmountCellPr
   const hasFinding = !!finding
   const colorClass = hasFinding
     ? finding.severity === 'error'
-      ? 'text-red-300 underline decoration-red-500 decoration-dotted underline-offset-2 cursor-pointer hover:text-red-200'
+      ? 'text-red-600 underline decoration-red-500 decoration-dotted underline-offset-2 cursor-pointer hover:text-red-700'
       : finding.severity === 'warning'
-      ? 'text-amber-300 underline decoration-amber-500 decoration-dotted underline-offset-2 cursor-pointer hover:text-amber-200'
-      : 'text-blue-300 underline decoration-blue-500 decoration-dotted underline-offset-2 cursor-pointer hover:text-blue-200'
-    : 'text-slate-200'
+      ? 'text-amber-600 underline decoration-amber-500 decoration-dotted underline-offset-2 cursor-pointer hover:text-amber-700'
+      : 'text-[#1A5C4A] underline decoration-[#1A5C4A] decoration-dotted underline-offset-2 cursor-pointer hover:text-[#154D3E]'
+    : 'text-slate-800'
 
   return (
     <td className="py-2 pl-3 pr-2 w-28">
@@ -180,7 +180,7 @@ function AmountCell({ value, unit, finding, isSelected, onSelect }: AmountCellPr
           )}
         </>
       ) : (
-        <span className="font-mono tabular-nums text-sm text-slate-200">
+        <span className="font-mono tabular-nums text-sm text-slate-800">
           {fmt(value, unit)}
         </span>
       )}
@@ -199,17 +199,17 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
   const findingForLabel = (label: string): Finding | null => findingByField.get(label.toLowerCase()) ?? null
 
   const labelClass = (item: LineItem): string => {
-    if (item.is_total) return 'text-white font-semibold text-sm py-2 pr-3 pl-3'
-    if (item.is_subtotal) return 'text-slate-200 font-medium text-sm py-2 pr-3 pl-3'
-    return 'text-slate-300 text-sm py-2 pr-3'
+    if (item.is_total) return 'text-slate-900 font-semibold text-sm py-2 pr-3 pl-3'
+    if (item.is_subtotal) return 'text-slate-800 font-medium text-sm py-2 pr-3 pl-3'
+    return 'text-slate-700 text-sm py-2 pr-3'
   }
 
   const rowBg = (item: LineItem, finding: Finding | null): string => {
-    if (item.is_total) return 'bg-slate-700/60 border-t border-slate-500'
-    if (item.is_subtotal) return 'bg-slate-800/60 border-t border-slate-700'
-    if (finding?.severity === 'error') return 'bg-red-950/20 hover:bg-red-950/30'
-    if (finding?.severity === 'warning') return 'bg-amber-950/20 hover:bg-amber-950/30'
-    return 'hover:bg-slate-800/30'
+    if (item.is_total) return 'bg-[#e2e8f0] border-t border-slate-300'
+    if (item.is_subtotal) return 'bg-[#f1f5f9] border-t border-slate-200'
+    if (finding?.severity === 'error') return 'bg-red-50 hover:bg-red-100/60'
+    if (finding?.severity === 'warning') return 'bg-amber-50 hover:bg-amber-100/60'
+    return 'hover:bg-slate-50'
   }
 
   const hasPriorYear = sections.some(s => s.line_items.some(li => li.prior_year !== null))
@@ -220,7 +220,7 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
     const change = pctChange(item.current_year, item.prior_year)
 
     return (
-      <tr key={item.label} className={`transition-colors ${rowBg(item, finding)} ${isSelected ? 'ring-1 ring-inset ring-blue-400' : ''}`}>
+      <tr key={item.label} className={`transition-colors ${rowBg(item, finding)} ${isSelected ? 'ring-1 ring-inset ring-[#1A5C4A]' : ''}`}>
         {/* Dollar value — LEFT side, clickable if flagged */}
         <AmountCell
           value={item.current_year}
@@ -240,13 +240,13 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
 
         {hasPriorYear && (
           <>
-            <td className="py-2 px-3 text-sm text-right font-mono tabular-nums text-slate-400 w-24">
+            <td className="py-2 px-3 text-sm text-right font-mono tabular-nums text-slate-500 w-24">
               {fmt(item.prior_year, unit)}
             </td>
             <td className={`py-2 pl-2 pr-3 text-xs text-right font-mono tabular-nums w-16 ${
               change
-                ? parseFloat(change) > 0 ? 'text-green-400' : parseFloat(change) < 0 ? 'text-red-400' : 'text-slate-500'
-                : 'text-slate-600'
+                ? parseFloat(change) > 0 ? 'text-green-600' : parseFloat(change) < 0 ? 'text-red-600' : 'text-slate-500'
+                : 'text-slate-400'
             }`}>
               {change ?? '—'}
             </td>
@@ -258,7 +258,7 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
           {finding && finding.number != null && (
             <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold ${
               finding.severity === 'error'   ? 'bg-red-600 text-white' :
-              finding.severity === 'warning' ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white'
+              finding.severity === 'warning' ? 'bg-amber-600 text-white' : 'bg-[#1A5C4A] text-white'
             }`}>
               {finding.number}
             </span>
@@ -269,22 +269,22 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <div className="p-4 pb-0 border-b border-slate-700 mb-0">
+    <div className="h-full overflow-auto bg-white">
+      <div className="p-4 pb-0 border-b border-slate-200 mb-0">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-white capitalize">
+          <h2 className="text-sm font-semibold text-slate-800 capitalize">
             {data.statement_type?.replace(/_/g, ' ')}
           </h2>
-          {period && <span className="text-xs text-slate-400">{period}</span>}
+          {period && <span className="text-xs text-slate-500">{period}</span>}
         </div>
         {data.unit !== 'ones' && (
-          <p className="text-xs text-slate-500 pb-2">Figures in {data.unit} of {data.currency}</p>
+          <p className="text-xs text-slate-400 pb-2">Figures in {data.unit} of {data.currency}</p>
         )}
       </div>
 
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wider">
+          <tr className="border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider bg-slate-50">
             <th className="py-2.5 pl-3 pr-2 text-left font-medium w-28">Amount</th>
             <th className="py-2.5 px-3 text-left font-medium">Line Item</th>
             {hasPriorYear && (
@@ -302,7 +302,7 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
               <tr>
                 <td
                   colSpan={hasPriorYear ? 5 : 3}
-                  className="py-2.5 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-900/50 border-t border-slate-800"
+                  className="py-2.5 px-3 text-xs font-semibold text-[#1A5C4A] uppercase tracking-wider bg-[#EEF7F4] border-t border-slate-200"
                 >
                   {section.name}
                 </td>
@@ -316,7 +316,7 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
       </table>
 
       {sections.length === 0 && (
-        <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
+        <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
           No structured data extracted. View the raw document tab.
         </div>
       )}

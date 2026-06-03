@@ -21,15 +21,15 @@ export default function DocumentPanel({ document: doc, numberedFindings, selecte
   const fileUrl = `/api/documents/${doc.id}/file`
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 border-l border-slate-700/50">
+    <div className="flex flex-col h-full bg-white border-l border-slate-200">
       {/* Tab bar */}
-      <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-slate-700/50 bg-slate-800/30 shrink-0">
+      <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-slate-200 bg-white shrink-0">
         <button
           onClick={() => setTab('table')}
           className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t border-b-2 transition-colors ${
             tab === 'table'
-              ? 'border-blue-500 text-blue-400 bg-slate-800'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
+              ? 'border-[#1A5C4A] text-[#1A5C4A] bg-[#EEF7F4]'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           <Table className="w-3.5 h-3.5" />
@@ -41,8 +41,8 @@ export default function DocumentPanel({ document: doc, numberedFindings, selecte
             onClick={() => setTab('raw')}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t border-b-2 transition-colors ${
               tab === 'raw'
-                ? 'border-blue-500 text-blue-400 bg-slate-800'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#1A5C4A] text-[#1A5C4A] bg-[#EEF7F4]'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -55,7 +55,7 @@ export default function DocumentPanel({ document: doc, numberedFindings, selecte
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Download
@@ -75,9 +75,9 @@ export default function DocumentPanel({ document: doc, numberedFindings, selecte
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
-              <Table className="w-10 h-10 text-slate-600 mb-3" />
-              <p className="text-slate-400 text-sm font-medium">No structured data extracted</p>
-              <p className="text-slate-600 text-xs mt-1">
+              <Table className="w-10 h-10 text-slate-300 mb-3" />
+              <p className="text-slate-500 text-sm font-medium">No structured data extracted</p>
+              <p className="text-slate-400 text-xs mt-1">
                 Claude could not parse structured financial data from this document.
                 {isPdf && ' Switch to the Annotated PDF tab.'}
               </p>
