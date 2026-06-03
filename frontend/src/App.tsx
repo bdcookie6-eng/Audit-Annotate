@@ -38,6 +38,28 @@ export default function App() {
       .catch(() => {})
   }, [])
 
+  // Deep-link: if URL has ?doc=<id> (sent from TB tool), open that document directly
+  useEffect(() => {
+    const docId = new URLSearchParams(window.location.search).get('doc')
+    if (!docId) return
+    // Remove the query param from the URL bar without reloading
+    window.history.replaceState({}, '', window.location.pathname)
+    const poll = setInterval(async () => {
+      try {
+        const { status } = await pollDocumentStatus(docId)
+        if (status === 'ready') {
+          clearInterval(poll)
+          const doc = await getDocument(docId)
+          setActiveDocument(doc)
+          setSelectedFinding(null)
+          setAppState('workbench')
+        }
+        if (status === 'error') clearInterval(poll)
+      } catch { clearInterval(poll) }
+    }, 2000)
+    return () => clearInterval(poll)
+  }, [])
+
   const handleUpload = useCallback(async (file: File, clientName?: string) => {
     setUploading(true)
     setUploadError(null)
