@@ -11,7 +11,7 @@ services:
     # It is NOT exposed to the public internet.
     plan: starter
     envVars:
-      - key: ANTHROPIC_API_KEY
+      - key: GROQ_API_KEY
         sync: false           # set manually in Render dashboard
       - key: AUDIT_SECRET
         sync: false           # same value must be set in your Express app
