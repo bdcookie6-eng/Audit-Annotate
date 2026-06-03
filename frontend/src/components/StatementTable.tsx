@@ -193,10 +193,10 @@ export default function StatementTable({ data, findings, selectedFinding, onSele
 
   const findingByField = new Map<string, Finding>()
   for (const f of findings) {
-    if (f.field_name && f.status === 'open') findingByField.set(f.field_name, f)
+    if (f.field_name && f.status === 'open') findingByField.set(f.field_name.toLowerCase(), f)
   }
 
-  const findingForLabel = (label: string): Finding | null => findingByField.get(label) ?? null
+  const findingForLabel = (label: string): Finding | null => findingByField.get(label.toLowerCase()) ?? null
 
   const labelClass = (item: LineItem): string => {
     if (item.is_total) return 'text-white font-semibold text-sm py-2 pr-3 pl-3'
