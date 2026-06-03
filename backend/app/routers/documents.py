@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 
 from ..db.database import DocumentModel, FindingModel, get_db
 from ..services.audit_checks import run_all_checks
-from ..services.claude_service import extract_financial_data, generate_document_summary
-from ..services.document_processor import extract_document_text, find_text_in_pdf
+from ..services.claude_service import extract_financial_data, generate_document_summary, generate_audit_report
+from ..services.document_processor import extract_document_text, find_text_in_pdf, is_trial_balance_csv, parse_trial_balance_csv
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -107,16 +107,19 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
         if not doc:
             return
 
-        text = extract_document_text(file_path, file_type)
-
-        # Wrap Claude calls in a timeout so hung requests don't block forever
-        try:
-            extracted = await asyncio.wait_for(
-                extract_financial_data(text),
-                timeout=PROCESSING_TIMEOUT,
-            )
-        except asyncio.TimeoutError:
-            raise RuntimeError(f"Claude extraction timed out after {PROCESSING_TIMEOUT}s")
+        # Trial balance CSVs from the TB tool are parsed directly — no AI needed
+        if file_type == "csv" and is_trial_balance_csv(file_path):
+            extracted = parse_trial_balance_csv(file_path)
+            text = extracted.get("_raw_text", "")
+        else:
+            text = extract_document_text(file_path, file_type)
+            try:
+                extracted = await asyncio.wait_for(
+                    extract_financial_data(text),
+                    timeout=PROCESSING_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                raise RuntimeError(f"Claude extraction timed out after {PROCESSING_TIMEOUT}s")
 
         extracted["_raw_text"] = text[:6000]
         findings = run_all_checks(extracted)
@@ -273,6 +276,33 @@ def update_finding(
         finding.note = body.note
     db.commit()
     return {"success": True}
+
+
+@router.post("/{doc_id}/report")
+async def generate_report(doc_id: str, db: Session = Depends(get_db)):
+    from fastapi.responses import PlainTextResponse
+    doc = db.query(DocumentModel).filter(DocumentModel.id == doc_id).first()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+    if doc.status != "ready":
+        raise HTTPException(400, "Document is not ready")
+
+    findings = [
+        {"severity": f.severity, "title": f.title, "description": f.description, "status": f.status}
+        for f in doc.findings
+    ]
+    extracted = dict(doc.extracted_data or {})
+    period = extracted.get("period", "")
+
+    try:
+        report_text = await asyncio.wait_for(
+            generate_audit_report(extracted, findings, doc.client_name or "", period),
+            timeout=120,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(504, "Report generation timed out")
+
+    return PlainTextResponse(report_text, media_type="text/plain")
 
 
 @router.delete("/{doc_id}")

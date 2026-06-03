@@ -38,6 +38,115 @@ def extract_text_from_excel(file_path: str) -> str:
     return text
 
 
+_TB_COLS = {"account name", "debit", "credit"}
+
+
+def is_trial_balance_csv(file_path: str) -> bool:
+    try:
+        df = pd.read_csv(file_path, nrows=2)
+        cols = {c.strip().lower() for c in df.columns}
+        return _TB_COLS.issubset(cols)
+    except Exception:
+        return False
+
+
+def parse_trial_balance_csv(file_path: str) -> dict:
+    """
+    Parse a TB-tool CSV directly into the extracted_data structure.
+    Bypasses Groq — the structure is already clean and well-defined.
+    """
+    df = pd.read_csv(file_path, dtype=str).fillna("")
+    # Normalise column names
+    df.columns = [c.strip() for c in df.columns]
+
+    # Drop TOTAL row
+    df = df[df.get("Account Name", pd.Series()).str.upper().str.strip() != "TOTAL"].copy()
+
+    def to_float(v):
+        v = str(v).strip().replace(",", "")
+        try:
+            return float(v) if v else None
+        except ValueError:
+            return None
+
+    # Group by Account Type
+    type_order = ["asset", "liability", "equity", "revenue", "expense"]
+    groups: dict[str, list] = {}
+    for _, row in df.iterrows():
+        atype = str(row.get("Account Type", "")).strip()
+        if not atype or atype.lower() == "nan":
+            atype = "Other"
+        key = atype.lower()
+        groups.setdefault(key, []).append(row)
+
+    sections = []
+    for tkey in type_order + [k for k in groups if k not in type_order]:
+        if tkey not in groups:
+            continue
+        items = groups[tkey]
+        section_name = tkey.capitalize() + "s" if not tkey.endswith("s") else tkey.capitalize()
+
+        line_items = []
+        subtotal_debit = subtotal_credit = 0.0
+        for row in items:
+            debit = to_float(row.get("Debit", ""))
+            credit = to_float(row.get("Credit", ""))
+            # Represent as signed net for analysis: debits positive, credits negative
+            net = (debit or 0.0) - (credit or 0.0)
+            subtotal_debit += debit or 0.0
+            subtotal_credit += credit or 0.0
+            line_items.append({
+                "label": str(row.get("Account Name", "")).strip(),
+                "account_number": str(row.get("Account Number", "")).strip(),
+                "debit": debit,
+                "credit": credit,
+                "current_year": net,
+                "prior_year": None,
+                "is_subtotal": False,
+                "is_total": False,
+                "indent_level": 0,
+            })
+
+        subtotal_net = subtotal_debit - subtotal_credit
+        sections.append({
+            "name": section_name,
+            "line_items": line_items,
+            "subtotal": {
+                "label": f"Total {section_name}",
+                "debit": subtotal_debit,
+                "credit": subtotal_credit,
+                "current_year": subtotal_net,
+                "prior_year": None,
+                "is_subtotal": True,
+                "is_total": False,
+                "indent_level": 0,
+            },
+        })
+
+    total_debit = sum(to_float(r.get("Debit", "")) or 0 for _, r in df.iterrows())
+    total_credit = sum(to_float(r.get("Credit", "")) or 0 for _, r in df.iterrows())
+
+    raw_text = df.to_string(index=False)
+    return {
+        "statement_type": "trial_balance",
+        "period": "",
+        "currency": "USD",
+        "unit": "ones",
+        "sections": sections,
+        "total": {
+            "label": "Total",
+            "debit": total_debit,
+            "credit": total_credit,
+            "current_year": total_debit - total_credit,
+            "prior_year": None,
+            "is_subtotal": False,
+            "is_total": True,
+            "indent_level": 0,
+        },
+        "_raw_text": raw_text,
+    }
+
+
 def extract_text_from_csv(file_path: str) -> str:
     try:
         df = pd.read_csv(file_path)

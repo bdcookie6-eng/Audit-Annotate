@@ -120,6 +120,58 @@ async def generate_document_summary(extracted_data: dict, findings: list) -> str
     return response.choices[0].message.content.strip()
 
 
+REPORT_SYSTEM = """You are a licensed CPA writing a formal audit report following US GAAP and AICPA standards.
+Write in clear, professional language. Use standard audit report structure. Be specific about figures.
+Do not hallucinate — only reference data explicitly provided."""
+
+async def generate_audit_report(extracted_data: dict, findings: list, client_name: str, period: str) -> str:
+    client = get_client()
+
+    findings_text = "\n".join(
+        f"- [{f.get('severity','info').upper()}] {f.get('title')}: {f.get('description')}"
+        for f in findings
+    ) or "No material findings identified."
+
+    errors = [f for f in findings if f.get("severity") == "error"]
+    warnings = [f for f in findings if f.get("severity") == "warning"]
+
+    prompt = f"""Generate a formal GAAP audit report for the following engagement.
+
+CLIENT: {client_name or "Client"}
+PERIOD: {period or "the period under review"}
+STATEMENT TYPE: {extracted_data.get("statement_type", "financial statement").replace("_", " ").title()}
+ERRORS ({len(errors)}): {len(errors)} material findings
+WARNINGS ({len(warnings)}): {len(warnings)} items requiring attention
+
+FINDINGS:
+{findings_text}
+
+FINANCIAL DATA SUMMARY:
+{json.dumps({k: v for k, v in extracted_data.items() if k not in ("_raw_text", "sections")}, indent=2)[:3000]}
+
+Write the report with these sections:
+1. Independent Auditor's Report header
+2. Opinion paragraph (qualified if errors exist, unqualified if clean)
+3. Basis for Opinion
+4. Material Findings (detail each error finding with account references and dollar amounts)
+5. Matters Requiring Attention (warnings)
+6. Management's Responsibilities
+7. Auditor's Responsibilities
+8. Signature block (use [Auditor Name] and [Date] as placeholders)
+
+Follow AICPA AU-C Section 700 format. Be precise with figures from the data."""
+
+    response = await client.chat.completions.create(
+        model=EXTRACTION_MODEL,
+        max_tokens=4096,
+        messages=[
+            {"role": "system", "content": REPORT_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    return response.choices[0].message.content.strip()
+
+
 COPILOT_SYSTEM = """You are an expert CPA audit assistant embedded in an audit workbench tool.
 You have access to a parsed financial document. Answer questions precisely, cite specific line items
 and figures, flag concerns proactively, and recommend concrete next steps. Be direct and professional.

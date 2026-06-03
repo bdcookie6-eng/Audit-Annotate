@@ -321,9 +321,90 @@ def check_balance_sheet_completeness(extracted_data: dict) -> list:
     return findings
 
 
+def check_trial_balance(extracted_data: dict) -> list:
+    if extracted_data.get("statement_type") != "trial_balance":
+        return []
+
+    findings = []
+    total = extracted_data.get("total", {}) or {}
+    total_debit = _float(total.get("debit")) or 0.0
+    total_credit = _float(total.get("credit")) or 0.0
+    diff = abs(total_debit - total_credit)
+
+    if diff > 0.05:
+        side = "debits" if total_debit < total_credit else "credits"
+        short = "credits" if total_debit < total_credit else "debits"
+        findings.append(_finding(
+            check_type="trial_balance_balance",
+            severity="error",
+            title="Trial Balance is Out of Balance",
+            description=(
+                f"Total debits ({_fmt(total_debit)}) do not equal total credits ({_fmt(total_credit)}). "
+                f"{side.capitalize()} are short by {_fmt(diff)}. "
+                f"Investigate missing or misclassified entries on the {short} side."
+            ),
+            field_name="TOTAL",
+            expected=total_credit if total_debit < total_credit else total_debit,
+            actual=total_debit if total_debit < total_credit else total_credit,
+        ))
+    else:
+        findings.append(_finding(
+            check_type="trial_balance_balance",
+            severity="info",
+            title="Trial Balance is Balanced",
+            description=f"Total debits and credits both equal {_fmt(total_debit)}. No imbalance detected.",
+        ))
+
+    # Check each account type section for unusual patterns
+    for section in extracted_data.get("sections", []):
+        name = section.get("name", "")
+        subtotal = section.get("subtotal") or {}
+        debit = _float(subtotal.get("debit")) or 0.0
+        credit = _float(subtotal.get("credit")) or 0.0
+
+        # Asset accounts should normally have debit balances
+        if "asset" in name.lower() and credit > debit and credit > 1000:
+            findings.append(_finding(
+                check_type="trial_balance_classification",
+                severity="warning",
+                title=f"Unusual Balance in {name}",
+                description=(
+                    f"{name} has credits ({_fmt(credit)}) exceeding debits ({_fmt(debit)}). "
+                    f"Asset accounts normally carry debit balances. Verify account classification."
+                ),
+                field_name=name,
+            ))
+
+        # Liability/equity accounts should normally have credit balances
+        if any(k in name.lower() for k in ("liabilit", "equity")) and debit > credit and debit > 1000:
+            findings.append(_finding(
+                check_type="trial_balance_classification",
+                severity="warning",
+                title=f"Unusual Balance in {name}",
+                description=(
+                    f"{name} has debits ({_fmt(debit)}) exceeding credits ({_fmt(credit)}). "
+                    f"Liability and equity accounts normally carry credit balances."
+                ),
+                field_name=name,
+            ))
+
+        # Flag zero-balance sections
+        if debit == 0 and credit == 0 and section.get("line_items"):
+            findings.append(_finding(
+                check_type="trial_balance_classification",
+                severity="info",
+                title=f"Zero Balance in {name} Section",
+                description=f"All accounts in the {name} section have zero balances. Confirm this is expected.",
+                field_name=name,
+            ))
+
+    return findings
+
+
 def run_all_checks(extracted_data: dict) -> list:
     findings = (
-        check_footing(extracted_data)
+        check_trial_balance(extracted_data)
+        + check_footing(extracted_data)
         + check_balance_sheet_equation(extracted_data)
         + check_balance_sheet_completeness(extracted_data)
         + check_income_statement(extracted_data)

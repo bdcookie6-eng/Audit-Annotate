@@ -50,6 +50,15 @@ export async function updateFinding(
   })
 }
 
+export async function generateReport(docId: string): Promise<string> {
+  const res = await fetch(`${BASE}/documents/${docId}/report`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || 'Report generation failed')
+  }
+  return res.text()
+}
+
 export async function getSummary(docId: string): Promise<{ summary: string }> {
   const res = await fetch(`${BASE}/chat/summary/${docId}`)
   if (!res.ok) throw new Error('Failed to get summary')

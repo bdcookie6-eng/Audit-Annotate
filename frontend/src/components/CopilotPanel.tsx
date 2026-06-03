@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Send, Bot, User, Loader, AlertCircle, AlertTriangle, Info, ChevronDown } from 'lucide-react'
+import { Send, Bot, User, Loader, AlertCircle, AlertTriangle, Info, ChevronDown, FileText } from 'lucide-react'
 import type { Document, Finding, ChatMessage } from '../types'
-import { getSummary, streamChatMessage } from '../api/client'
+import { getSummary, streamChatMessage, generateReport } from '../api/client'
 import FindingCard from './FindingCard'
 
 interface Props {
@@ -49,6 +49,7 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [showFindings, setShowFindings] = useState(true)
+  const [reportGenerating, setReportGenerating] = useState(false)
   const [filter, setFilter] = useState<'all' | 'open' | 'reviewed'>('open')
 
   const chatBottomRef = useRef<HTMLDivElement>(null)
@@ -160,7 +161,33 @@ export default function CopilotPanel({ document: doc, numberedFindings, selected
           )}
         </div>
 
-        <FindingsBadge findings={doc.findings} />
+        <div className="flex items-center justify-between mt-2">
+          <FindingsBadge findings={doc.findings} />
+          <button
+            onClick={async () => {
+              setReportGenerating(true)
+              try {
+                const text = await generateReport(doc.id)
+                const blob = new Blob([text], { type: 'text/plain' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${doc.client_name || 'audit'}_report.txt`
+                a.click()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert('Report generation failed: ' + (e instanceof Error ? e.message : String(e)))
+              } finally {
+                setReportGenerating(false)
+              }
+            }}
+            disabled={reportGenerating}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-lg transition-colors shrink-0"
+          >
+            {reportGenerating ? <Loader className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+            {reportGenerating ? 'Generating…' : 'GAAP Report'}
+          </button>
+        </div>
       </div>
 
       {/* Findings section */}
