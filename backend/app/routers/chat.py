@@ -6,7 +6,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..db.database import DocumentModel, FindingModel, get_db
-from ..services.claude_service import generate_document_summary, stream_chat_response  # noqa: F401 generate_document_summary used in get_summary fallback
+from ..routers.documents import ChatRequest
+from ..services.claude_service import generate_document_summary, stream_chat_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,11 +21,10 @@ async def get_summary(doc_id: str, db: Session = Depends(get_db)):
     if doc.status != "ready":
         return {"summary": "Document is still being processed…"}
 
-    # Serve cached summary if available
     if doc.summary:
         return {"summary": doc.summary}
 
-    # Fallback: generate on demand and cache for next time
+    # Fallback: generate on demand and cache
     findings = db.query(FindingModel).filter(FindingModel.document_id == doc_id).all()
     findings_list = [
         {"severity": f.severity, "title": f.title, "description": f.description}
@@ -38,27 +38,20 @@ async def get_summary(doc_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/message")
-async def chat_message(body: dict, db: Session = Depends(get_db)):
-    doc_id = body.get("document_id")
-    message = body.get("message", "").strip()
-    history = body.get("history", [])
-
-    if not doc_id or not message:
-        raise HTTPException(400, "document_id and message are required")
-
-    doc = db.query(DocumentModel).filter(DocumentModel.id == doc_id).first()
+async def chat_message(body: ChatRequest, db: Session = Depends(get_db)):
+    doc = db.query(DocumentModel).filter(DocumentModel.id == body.document_id).first()
     if not doc:
         raise HTTPException(404, "Document not found")
     if doc.status != "ready":
         raise HTTPException(400, "Document is still processing")
 
-    data = doc.extracted_data or {}
+    # Copy so we don't mutate the ORM-tracked JSON column
+    data = dict(doc.extracted_data or {})
     raw_text = data.pop("_raw_text", "")
-    extracted = {k: v for k, v in data.items()}
 
     async def event_stream():
         try:
-            async for chunk in stream_chat_response(raw_text, extracted, message, history):
+            async for chunk in stream_chat_response(raw_text, data, body.message, body.history):
                 yield f"data: {json.dumps({'text': chunk})}\n\n"
         except Exception as exc:
             logger.exception("Streaming error")

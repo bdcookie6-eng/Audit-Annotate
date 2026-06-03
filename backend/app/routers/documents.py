@@ -2,9 +2,11 @@ import os
 import uuid
 import logging
 import asyncio
+from typing import Literal, Optional
 
 import aiofiles
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from ..db.database import DocumentModel, FindingModel, get_db
@@ -16,6 +18,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+PROCESSING_TIMEOUT = 180  # seconds before a Claude call is considered hung
 
 EXT_TO_TYPE = {"pdf": "pdf", "xlsx": "xlsx", "xls": "xls", "csv": "csv"}
 MIME_TO_TYPE = {
@@ -25,6 +29,32 @@ MIME_TO_TYPE = {
     "text/csv": "csv",
     "application/octet-stream": None,  # fall back to extension
 }
+
+VALID_STATUSES = {"open", "approved", "dismissed", "noted"}
+
+
+class FindingPatch(BaseModel):
+    status: Optional[Literal["open", "approved", "dismissed", "noted"]] = None
+    note: Optional[str] = None
+
+    @field_validator("note")
+    @classmethod
+    def strip_note(cls, v):
+        return v.strip() if v else v
+
+
+class ChatRequest(BaseModel):
+    document_id: str
+    message: str
+    history: list = []
+
+    @field_validator("message")
+    @classmethod
+    def message_not_empty(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("message must not be empty")
+        return v
 
 
 def _doc_to_dict(doc: DocumentModel, db: Session) -> dict:
@@ -76,12 +106,19 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
             return
 
         text = extract_document_text(file_path, file_type)
-        extracted = await extract_financial_data(text)
-        extracted["_raw_text"] = text[:6000]
 
+        # Wrap Claude calls in a timeout so hung requests don't block forever
+        try:
+            extracted = await asyncio.wait_for(
+                extract_financial_data(text),
+                timeout=PROCESSING_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"Claude extraction timed out after {PROCESSING_TIMEOUT}s")
+
+        extracted["_raw_text"] = text[:6000]
         findings = run_all_checks(extracted)
 
-        # For PDFs, resolve each finding's field_name to page coordinates
         is_pdf = file_type == "pdf"
         for f in findings:
             if is_pdf and f.get("field_name"):
@@ -96,8 +133,11 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
         ]
         extracted_for_summary = {k: v for k, v in extracted.items() if k != "_raw_text"}
         try:
-            doc.summary = await generate_document_summary(extracted_for_summary, findings_list)
-        except Exception:
+            doc.summary = await asyncio.wait_for(
+                generate_document_summary(extracted_for_summary, findings_list),
+                timeout=60,
+            )
+        except (asyncio.TimeoutError, Exception):
             logger.warning("Summary generation failed for %s", doc_id)
             doc.summary = None
 
@@ -143,12 +183,15 @@ async def upload_document(
     if not file_type:
         raise HTTPException(400, f"Unsupported file type: {file.content_type} / .{ext}")
 
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"File too large — maximum is {MAX_UPLOAD_BYTES // 1024 // 1024} MB")
+
     doc_id = str(uuid.uuid4())
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_path = os.path.join(UPLOAD_DIR, f"{doc_id}.{file_type}")
 
     async with aiofiles.open(file_path, "wb") as out:
-        content = await file.read()
         await out.write(content)
 
     doc = DocumentModel(
@@ -164,12 +207,18 @@ async def upload_document(
 
     background_tasks.add_task(_process_document, doc_id, file_path, file_type)
 
-    return {"id": doc_id, "filename": file.filename, "file_type": file_type, "status": "processing", "client_name": doc.client_name}
+    return {
+        "id": doc_id,
+        "filename": file.filename,
+        "file_type": file_type,
+        "status": "processing",
+        "client_name": doc.client_name,
+    }
 
 
 @router.get("/")
 def list_documents(db: Session = Depends(get_db)):
-    docs = db.query(DocumentModel).order_by(DocumentModel.created_at.desc()).all()
+    docs = db.query(DocumentModel).order_by(DocumentModel.created_at.desc()).limit(50).all()
     return [_doc_to_dict(d, db) for d in docs]
 
 
@@ -205,7 +254,7 @@ def serve_file(doc_id: str, db: Session = Depends(get_db)):
 def update_finding(
     doc_id: str,
     finding_id: str,
-    body: dict,
+    body: FindingPatch,
     db: Session = Depends(get_db),
 ):
     finding = (
@@ -215,10 +264,10 @@ def update_finding(
     )
     if not finding:
         raise HTTPException(404, "Finding not found")
-    if "status" in body:
-        finding.status = body["status"]
-    if "note" in body:
-        finding.note = body["note"]
+    if body.status is not None:
+        finding.status = body.status
+    if body.note is not None:
+        finding.note = body.note
     db.commit()
     return {"success": True}
 
