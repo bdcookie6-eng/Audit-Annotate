@@ -172,7 +172,7 @@ def check_prior_year_variances(extracted_data: dict) -> list:
 
 
 def _find_section_value(sections: list, *keywords: str) -> Optional[float]:
-    """Return the subtotal current_year for the first section whose name contains all keywords."""
+    """Used by check_income_statement. Return subtotal current_year for the first section whose name contains all keywords."""
     kws = [k.lower() for k in keywords]
     for section in sections:
         name = section.get("name", "").lower()
@@ -183,7 +183,7 @@ def _find_section_value(sections: list, *keywords: str) -> Optional[float]:
 
 
 def _find_item_value(sections: list, *keywords: str) -> Optional[float]:
-    """Return current_year for the first line item whose label contains all keywords."""
+    """Used by check_income_statement. Return current_year for the first line item whose label contains all keywords."""
     kws = [k.lower() for k in keywords]
     for section in sections:
         for item in section.get("line_items", []):

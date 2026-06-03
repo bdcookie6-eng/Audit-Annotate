@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..db.database import DocumentModel, FindingModel, get_db
 from ..services.audit_checks import run_all_checks
 from ..services.claude_service import extract_financial_data, generate_document_summary, generate_audit_report
-from ..services.document_processor import extract_document_text, find_text_in_pdf, is_trial_balance_csv, parse_trial_balance_csv
+from ..services.document_processor import extract_document_text, find_text_in_pdf, try_parse_trial_balance_csv
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,9 +29,6 @@ MIME_TO_TYPE = {
     "text/csv": "csv",
     "application/octet-stream": None,  # fall back to extension
 }
-
-VALID_STATUSES = {"open", "approved", "dismissed", "noted"}
-
 
 class FindingPatch(BaseModel):
     status: Optional[Literal["open", "approved", "dismissed", "noted"]] = None
@@ -108,8 +105,9 @@ async def _process_document(doc_id: str, file_path: str, file_type: str):
             return
 
         # Trial balance CSVs from the TB tool are parsed directly — no AI needed
-        if file_type == "csv" and is_trial_balance_csv(file_path):
-            extracted = parse_trial_balance_csv(file_path)
+        tb_result = try_parse_trial_balance_csv(file_path) if file_type == "csv" else None
+        if tb_result is not None:
+            extracted = tb_result
             text = extracted.get("_raw_text", "")
         else:
             text = extract_document_text(file_path, file_type)

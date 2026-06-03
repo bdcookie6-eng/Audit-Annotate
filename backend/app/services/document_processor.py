@@ -41,23 +41,20 @@ def extract_text_from_excel(file_path: str) -> str:
 _TB_COLS = {"account name", "debit", "credit"}
 
 
-def is_trial_balance_csv(file_path: str) -> bool:
-    try:
-        df = pd.read_csv(file_path, nrows=2)
-        cols = {c.strip().lower() for c in df.columns}
-        return _TB_COLS.issubset(cols)
-    except Exception:
-        return False
-
-
-def parse_trial_balance_csv(file_path: str) -> dict:
+def try_parse_trial_balance_csv(file_path: str) -> dict | None:
     """
-    Parse a TB-tool CSV directly into the extracted_data structure.
+    Read the file once. If it looks like a TB-tool CSV, parse and return the
+    extracted_data dict. Returns None if the file is not a trial balance CSV.
     Bypasses Groq — the structure is already clean and well-defined.
     """
-    df = pd.read_csv(file_path, dtype=str).fillna("")
-    # Normalise column names
+    try:
+        df = pd.read_csv(file_path, dtype=str).fillna("")
+    except Exception:
+        return None
+
     df.columns = [c.strip() for c in df.columns]
+    if not _TB_COLS.issubset({c.lower() for c in df.columns}):
+        return None
 
     # Drop TOTAL row
     df = df[df.get("Account Name", pd.Series()).str.upper().str.strip() != "TOTAL"].copy()
