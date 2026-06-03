@@ -62,9 +62,7 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
           </div>
           <h1 className="text-2xl font-semibold text-white tracking-tight">Audit & Annotate</h1>
         </div>
-        <p className="text-slate-400 text-sm max-w-sm">
-          AI-powered financial statement audit workbench for CPA teams
-        </p>
+        <p className="text-slate-400 text-sm">AI audit workbench for CPA teams</p>
       </div>
 
       {/* Client / Engagement field */}
@@ -107,8 +105,7 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
           {uploading ? (
             <>
               <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-slate-300 font-medium">Processing document…</p>
-              <p className="text-slate-500 text-sm">Claude is extracting and analyzing the financial data</p>
+              <p className="text-slate-300 font-medium">Processing…</p>
             </>
           ) : (
             <>
@@ -140,10 +137,6 @@ export default function UploadZone({ onUpload, uploading, error }: Props) {
         </div>
       )}
 
-      <p className="mt-8 text-slate-600 text-xs text-center max-w-sm">
-        Balance sheets, income statements, and cash flow statements supported.
-        Files are processed securely and not shared externally.
-      </p>
       </div>{/* end flex-1 center */}
     </div>
   )
