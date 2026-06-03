@@ -53,5 +53,5 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 
 
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok", "version": "1.0.0"}
