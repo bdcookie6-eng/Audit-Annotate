@@ -63,11 +63,43 @@ export interface Document {
   error_message: string | null
   findings: Finding[]
   created_at: string | null
-  summary: string | null
-  client_name: string | null
 }
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+}
+
+// Report draft types
+
+export interface ReportFigure {
+  id: string
+  display: string
+  label: string
+  source_document_id: string
+  source_document_name: string
+  source_section: string
+  source_line_item: string
+  report_section_id: string
+  report_section_heading: string
+}
+
+export interface ReportSection {
+  id: string
+  heading: string
+  paragraphs: string[]
+}
+
+export interface AuditReport {
+  title: string
+  addressee: string
+  sections: ReportSection[]
+  signature: string
+  date: string
+  location: string
+}
+
+export interface ReportDraft {
+  report: AuditReport
+  figure_map: ReportFigure[]
 }

@@ -1,11 +1,10 @@
-import type { Document } from '../types'
+import type { Document, ReportDraft } from '../types'
 
 const BASE = '/api'
 
-export async function uploadDocument(file: File, clientName?: string): Promise<{ id: string; status: string }> {
+export async function uploadDocument(file: File): Promise<{ id: string; status: string }> {
   const form = new FormData()
   form.append('file', file)
-  if (clientName) form.append('client_name', clientName)
   const res = await fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -48,15 +47,6 @@ export async function updateFinding(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   })
-}
-
-export async function generateReport(docId: string): Promise<string> {
-  const res = await fetch(`${BASE}/documents/${docId}/report`, { method: 'POST' })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Report generation failed')
-  }
-  return res.text()
 }
 
 export async function getSummary(docId: string): Promise<{ summary: string }> {
@@ -107,4 +97,17 @@ export function streamChatMessage(
       onDone()
     })
     .catch((e) => onError(e.message))
+}
+
+export async function draftReport(documentIds: string[]): Promise<ReportDraft> {
+  const res = await fetch(`${BASE}/report/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_ids: documentIds }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || 'Failed to generate report draft')
+  }
+  return res.json()
 }
