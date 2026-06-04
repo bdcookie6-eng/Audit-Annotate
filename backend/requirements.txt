@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pymupdf==1.24.11
+openpyxl==3.1.5
+pandas==2.2.3
+anthropix==0.40.0
+sqlalchemy==2.0.36
+python-dotenv==1.0.1
+aiofiles==24.1.0
+reportlab==4.2.5
