@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown, ChevronRight, FileText, AlertCircle } from 'lucide-react'
 import type { Document, ReportFigure } from '../types'
 
