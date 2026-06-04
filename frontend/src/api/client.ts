@@ -1,11 +1,10 @@
-import type { Document } from '../types'
+import type { Document, ReportDraft } from '../types'
 
 const BASE = '/api'
 
-export async function uploadDocument(file: File, clientName?: string): Promise<{ id: string; status: string }> {
+export async function uploadDocument(file: File): Promise<{ id: string; status: string }> {
   const form = new FormData()
   form.append('file', file)
-  if (clientName) form.append('client_name', clientName)
   const res = await fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -48,15 +47,6 @@ export async function updateFinding(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   })
-}
-
-export async function generateReport(docId: string): Promise<string> {
-  const res = await fetch(`${BASE}/documents/${docId}/report`, { method: 'POST' })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Report generation failed')
-  }
-  return res.text()
 }
 
 export async function getSummary(docId: string): Promise<{ summary: string }> {
@@ -107,4 +97,38 @@ export function streamChatMessage(
       onDone()
     })
     .catch((e) => onError(e.message))
+}
+
+export async function draftReport(documentIds: string[]): Promise<ReportDraft> {
+  const res = await fetch(`${BASE}/report/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_ids: documentIds }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || 'Failed to generate report draft')
+  }
+  return res.json()
+}
+
+export async function generateReport(docId: string): Promise<string> {
+  const draft = await draftReport([docId])
+  const { report, figure_map } = draft
+  const lines: string[] = [report.title, '']
+  if (report.addressee) lines.push(`To the ${report.addressee}`, '')
+  for (const section of report.sections) {
+    lines.push(section.heading.toUpperCase(), '')
+    for (const para of section.paragraphs) {
+      const resolved = para.replace(/\{\{(fig_\d+)\}\}/g, (_, id) => {
+        const fig = figure_map.find(f => f.id === id)
+        return fig ? fig.display : id
+      })
+      lines.push(resolved, '')
+    }
+  }
+  if (report.signature) lines.push(report.signature)
+  if (report.location) lines.push(report.location)
+  if (report.date) lines.push(report.date)
+  return lines.join('\n')
 }
